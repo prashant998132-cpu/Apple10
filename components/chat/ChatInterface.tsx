@@ -327,70 +327,102 @@ export default function ChatInterface() {
   const pinnedList = messages.filter(m => m.pinned);
 
   return (
-    <div className="flex flex-col h-full bg-[#0a0b0f]">
+    <div className="flex flex-col bg-[#0a0b0f]" style={{ height: '100%', overflow: 'hidden' }}>
       {showCompress && <CompressPopup onClose={() => setShowCompress(false)} />}
 
-      {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-gray-800/50 flex-shrink-0 backdrop-blur-xl bg-[#0a0b0f]/80">
-        <div className="flex items-center gap-2">
-          <ChatHistorySidebar onSelect={loadSession} currentSession={sessionId} />
-          <div className={`flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-gray-800/80 border ${relationship.name === 'JARVIS MODE' ? 'border-blue-500 text-blue-400' : 'border-gray-700 text-gray-500'}`}>
-            {relationship.icon} {relationship.name}
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          {toolsRunning && <span className="text-[10px] text-yellow-400 animate-pulse">🔧 tools…</span>}
-          {puterReady && <span className="text-[10px] text-green-400 border border-green-500/30 bg-green-500/10 px-1.5 py-0.5 rounded-full">⚡ Puter</span>}
-          <button onClick={() => setShowCompress(true)} className="text-gray-500 hover:text-white text-sm">✂️</button>
-          <CommandPalette onCommand={sendMessage} />
-          {pinnedList.length > 0 && <span className="text-[10px] text-amber-400 border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 rounded-full">📌 {pinnedList.length}</span>}
-        </div>
+      {/* ── FLOATING top-left controls (no header bar) ── */}
+      <div className="absolute top-2 left-2 z-40 flex items-center gap-1.5 pointer-events-auto">
+        <ChatHistorySidebar onSelect={loadSession} currentSession={sessionId} />
+        <span className={`text-[10px] px-1.5 py-0.5 rounded-full border ${
+          relationship.name === 'JARVIS MODE' ? 'border-blue-500/50 text-blue-400 bg-blue-500/10' : 'border-gray-800 text-gray-600 bg-transparent'
+        }`}>
+          {relationship.icon} {relationship.name}
+        </span>
+        {toolsRunning && <span className="text-[10px] text-yellow-400 animate-pulse">🔧</span>}
+        {puterReady && <span className="text-[10px] text-green-500/70">⚡</span>}
       </div>
 
-      <ModeBar mode={thinkMode} onModeChange={setThinkMode} personality={personality} onPersonalityChange={p => setPersonality(p as PersonalityMode)} />
+      {/* ── FLOATING top-right controls ── */}
+      <div className="absolute top-2 right-2 z-40 flex items-center gap-1.5 pointer-events-auto">
+        <CommandPalette onCommand={sendMessage} />
+        <button onClick={() => setShowCompress(true)} className="text-gray-600 hover:text-gray-400 text-sm px-1">✂️</button>
+      </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-3 py-2 space-y-2 min-h-0">
-        {pinnedList.length > 0 && (
-          <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-2 mb-2">
-            <div className="text-[10px] text-amber-400 font-bold mb-1">📌 Pinned</div>
-            {pinnedList.map(m => <div key={m.id} className="text-xs text-gray-300 truncate">{m.content.slice(0, 60)}…</div>)}
-          </div>
-        )}
+      {/* ── MESSAGES — full height, ChatGPT centered ── */}
+      <div className="flex-1 overflow-y-auto" style={{ paddingTop: '36px' }}>
+        <div className="max-w-2xl mx-auto px-4 py-4 space-y-5 pb-6">
 
-        {messages.map(msg => (
-          <div key={msg.id}>
-            {msg.thinking && <ThinkBubble thinking={msg.thinking} />}
-            <MessageBubble message={msg} onLike={liked => handleLike(msg.id, liked)} onSpeak={() => handleSpeak(msg.content)} onCopy={() => navigator.clipboard.writeText(msg.content)} onPin={() => togglePin(msg.id)} />
-            {/* Tool attribution */}
-            {msg.toolsUsed && msg.toolsUsed.length > 0 && (
-              <div className="flex gap-1 mt-1 ml-1">
-                {msg.toolsUsed.map(t => (
-                  <span key={t} className="text-[9px] px-1.5 py-0.5 bg-blue-500/10 text-blue-400 rounded-full border border-blue-500/20">
-                    🔧 {t.replace(/_/g, ' ')}
-                  </span>
+          {/* Pinned bar */}
+          {pinnedList.length > 0 && (
+            <div className="bg-amber-500/8 border border-amber-500/20 rounded-xl p-2.5 mt-1">
+              <p className="text-[10px] text-amber-400 font-bold mb-1">📌 Pinned</p>
+              {pinnedList.map(m => (
+                <p key={m.id} className="text-xs text-gray-500 truncate">{m.content.slice(0, 70)}…</p>
+              ))}
+            </div>
+          )}
+
+          {messages.map(msg => (
+            <div key={msg.id}>
+              {msg.thinking && <ThinkBubble thinking={msg.thinking} />}
+              <MessageBubble
+                message={msg}
+                onLike={liked => handleLike(msg.id, liked)}
+                onSpeak={() => handleSpeak(msg.content)}
+                onCopy={() => navigator.clipboard.writeText(msg.content)}
+                onPin={() => togglePin(msg.id)}
+              />
+              {msg.toolsUsed && msg.toolsUsed.length > 0 && (
+                <div className="flex gap-1 mt-1 flex-wrap">
+                  {msg.toolsUsed.map(t => (
+                    <span key={t} className="text-[9px] px-1.5 py-0.5 bg-blue-500/8 text-blue-400/60 rounded-full border border-blue-500/10">
+                      🔧 {t.replace(/_/g, ' ')}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+
+          {/* Typing indicator */}
+          {(loading || toolsRunning) && (
+            <div className="flex items-center gap-2 py-1 pl-1">
+              <div className="flex gap-1">
+                {[0,1,2].map(i => (
+                  <div key={i} className="w-1.5 h-1.5 rounded-full bg-blue-500/60 animate-bounce"
+                    style={{ animationDelay: `${i * 0.15}s` }} />
                 ))}
               </div>
-            )}
-          </div>
-        ))}
-
-        {(loading || toolsRunning) && (
-          <div className="flex items-center gap-2 px-3 py-1">
-            <div className="flex gap-1">
-              {[0,1,2].map(i => <div key={i} className="w-2 h-2 rounded-full bg-blue-500 animate-bounce" style={{ animationDelay: `${i*0.1}s` }} />)}
+              <span className="text-xs text-gray-600">
+                {toolsRunning ? 'Tools chal rahe hain...' : thinkMode === 'think' ? 'Soch raha hoon...' : thinkMode === 'deep' ? 'Deep analysis...' : ''}
+              </span>
             </div>
-            <span className="text-xs text-gray-500">
-              {toolsRunning ? '🔧 Tools detect kar raha hoon…' : thinkMode === 'think' ? '🧠 Deep mein soch raha hoon…' : thinkMode === 'deep' ? '🔬 Analysis kar raha hoon…' : 'Likh raha hoon…'}
-            </span>
-          </div>
-        )}
+          )}
 
-        {!loading && messages.length > 1 && <FollowUpChips lastMessage={messages[messages.length - 1]} onSelect={sendMessage} />}
-        <div ref={bottomRef} />
+          {!loading && messages.length > 1 && (
+            <FollowUpChips lastMessage={messages[messages.length - 1]} onSelect={sendMessage} />
+          )}
+
+          <div ref={bottomRef} />
+        </div>
       </div>
 
-      <InputBar value={input} onChange={setInput} onSend={sendMessage} loading={loading} onStop={() => abortRef.current?.abort()} onCompress={() => setShowCompress(true)} />
+      {/* ── INPUT BAR — bottom, no border/bg overhead, ChatGPT style ── */}
+      <div className="flex-shrink-0 px-4 pb-3 pt-2 bg-gradient-to-t from-[#0a0b0f] via-[#0a0b0f] to-transparent">
+        <div className="max-w-2xl mx-auto">
+          <InputBar
+            value={input} onChange={setInput}
+            onSend={sendMessage} loading={loading}
+            onStop={() => abortRef.current?.abort()}
+            onCompress={() => setShowCompress(true)}
+            currentMode={thinkMode}
+            onModeChange={m => setThinkMode(m as any)}
+          />
+          <p className="text-center text-[10px] text-gray-700 mt-1.5">
+            JARVIS — galti ho sakti hai, important info verify karo
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
