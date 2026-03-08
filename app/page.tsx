@@ -77,20 +77,8 @@ export default function Home() {
       {!booted && <MatrixBoot onDone={() => setBooted(true)} />}
       {booted && (
         <ErrorBoundary>
-          {/* Header */}
-          <div className="flex items-center justify-between px-4 py-2 border-b border-gray-800/50">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-sm font-bold">J</div>
-              <div>
-                <div className="text-sm font-bold leading-none">JARVIS</div>
-                <div className="text-[10px] text-green-400 leading-none">● Online</div>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <a href="/settings" className="text-gray-400 hover:text-white text-xl">⚙️</a>
-            </div>
-          </div>
-          <div className="flex-1 overflow-hidden">
+          {/* No header — ChatInterface fills full height with floating controls */}
+          <div className="flex-1 relative overflow-hidden">
             <ChatInterface />
           </div>
         </ErrorBoundary>
