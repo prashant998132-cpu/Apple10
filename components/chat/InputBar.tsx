@@ -14,12 +14,11 @@ const MODES = [
   { id: 'deep',  icon: '🔬', label: 'Deep',  desc: 'Tools' },
   { id: 'auto',  icon: '🤖', label: 'Auto',  desc: 'Smart' },
 ];
-
 const ATTACH = [
-  { id: 'camera',  icon: '📷', label: 'Camera',     accept: 'image/*', capture: 'environment' },
-  { id: 'image',   icon: '🖼️', label: 'Image',      accept: 'image/*', capture: undefined },
-  { id: 'pdf',     icon: '📄', label: 'PDF',        accept: 'application/pdf', capture: undefined },
-  { id: 'voice',   icon: '🎵', label: 'Voice note', accept: 'audio/*', capture: undefined },
+  { id: 'camera', icon: '📷', label: 'Camera',     accept: 'image/*', capture: 'environment' },
+  { id: 'image',  icon: '🖼️', label: 'Image',      accept: 'image/*' },
+  { id: 'pdf',    icon: '📄', label: 'PDF',        accept: 'application/pdf' },
+  { id: 'voice',  icon: '🎵', label: 'Voice note', accept: 'audio/*' },
 ];
 
 export default function InputBar({ value, onChange, onSend, loading, onStop, onCompress, currentMode = 'flash', onModeChange }: Props) {
@@ -28,21 +27,20 @@ export default function InputBar({ value, onChange, onSend, loading, onStop, onC
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const popupRef = useRef<HTMLDivElement>(null);
 
+  // Auto-resize textarea
   useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 120) + 'px';
-    }
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 200) + 'px';
   }, [value]);
 
   // Close popup on outside click
   useEffect(() => {
     if (!showPopup) return;
-    const handler = (e: MouseEvent) => {
-      if (popupRef.current && !popupRef.current.contains(e.target as Node)) setShowPopup(false);
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    const h = (e: MouseEvent) => { if (popupRef.current && !popupRef.current.contains(e.target as Node)) setShowPopup(false); };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
   }, [showPopup]);
 
   const startVoice = () => {
@@ -58,55 +56,53 @@ export default function InputBar({ value, onChange, onSend, loading, onStop, onC
     if (navigator.vibrate) navigator.vibrate([30, 50, 30]);
   };
 
-  const handleAttach = (item: typeof ATTACH[0]) => {
-    setShowPopup(false);
-    if (item.id === 'voice') { startVoice(); return; }
-    document.getElementById(`inp-${item.id}`)?.click();
-  };
+  const modeIcon = MODES.find(m => m.id === currentMode)?.icon || '⚡';
 
   return (
-    <div className="px-3 pb-3 pt-1 relative">
-
+    <div className="relative w-full">
       {/* Hidden file inputs */}
       {ATTACH.filter(a => a.id !== 'voice').map(a => (
-        <input key={a.id} id={`inp-${a.id}`} type="file"
-          className="hidden" accept={a.accept}
+        <input key={a.id} id={`inp-${a.id}`} type="file" className="hidden" accept={a.accept}
           {...(a.capture ? { capture: a.capture as any } : {})} />
       ))}
 
-      {/* ── POPUP ── */}
+      {/* ── POPUP (MODE + ATTACH) ── */}
       {showPopup && (
         <div ref={popupRef}
-          className="absolute bottom-full left-3 mb-2 z-50 bg-gray-950 border border-gray-800 rounded-2xl overflow-hidden shadow-2xl"
-          style={{ minWidth: '180px' }}>
-
-          {/* MODE section */}
-          <div className="px-3 pt-3 pb-1">
-            <p className="text-[10px] font-bold text-gray-500 tracking-widest mb-2 uppercase">Mode</p>
+          className="absolute bottom-full left-0 mb-3 z-50 bg-[#161b26] border border-gray-700/80 rounded-2xl shadow-2xl overflow-hidden"
+          style={{ minWidth: '200px' }}>
+          
+          {/* MODE */}
+          <div className="px-3 pt-3">
+            <p className="text-[10px] font-bold text-gray-600 tracking-widest uppercase mb-2">Mode</p>
             {MODES.map(m => (
               <button key={m.id}
-                onClick={() => { onModeChange?.(m.id); setShowPopup(false); }}
-                className={`flex items-center gap-3 w-full px-2 py-2 rounded-xl mb-0.5 transition-colors ${
-                  currentMode === m.id ? 'bg-blue-600/20 text-blue-400' : 'text-gray-300 hover:bg-gray-800/60'
+                onClick={() => { onModeChange?.(m.id); setShowPopup(false); if (navigator.vibrate) navigator.vibrate(20); }}
+                className={`flex items-center gap-3 w-full px-2 py-2.5 rounded-xl mb-0.5 transition-all ${
+                  currentMode === m.id ? 'bg-blue-600/25 text-blue-300' : 'text-gray-300 hover:bg-gray-800/60'
                 }`}>
-                <span className="text-lg w-6 text-center">{m.icon}</span>
+                <span className="text-xl w-7 text-center leading-none">{m.icon}</span>
                 <span className="text-sm font-medium flex-1 text-left">{m.label}</span>
                 <span className="text-[10px] text-gray-600">{m.desc}</span>
-                {currentMode === m.id && <span className="w-1.5 h-1.5 rounded-full bg-blue-500 ml-1" />}
+                {currentMode === m.id && <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />}
               </button>
             ))}
           </div>
 
-          <div className="mx-3 border-t border-gray-800/80 my-1" />
+          <div className="mx-3 my-2 border-t border-gray-800" />
 
-          {/* ATTACH section */}
+          {/* ATTACH */}
           <div className="px-3 pb-3">
-            <p className="text-[10px] font-bold text-gray-500 tracking-widest mb-2 mt-1 uppercase">Attach</p>
+            <p className="text-[10px] font-bold text-gray-600 tracking-widest uppercase mb-2">Attach</p>
             {ATTACH.map(a => (
               <button key={a.id}
-                onClick={() => handleAttach(a)}
-                className="flex items-center gap-3 w-full px-2 py-2 rounded-xl mb-0.5 text-gray-300 hover:bg-gray-800/60 transition-colors">
-                <span className="text-lg w-6 text-center">{a.icon}</span>
+                onClick={() => {
+                  setShowPopup(false);
+                  if (a.id === 'voice') { startVoice(); return; }
+                  document.getElementById(`inp-${a.id}`)?.click();
+                }}
+                className="flex items-center gap-3 w-full px-2 py-2.5 rounded-xl mb-0.5 text-gray-300 hover:bg-gray-800/60 transition-all">
+                <span className="text-xl w-7 text-center leading-none">{a.icon}</span>
                 <span className="text-sm font-medium">{a.label}</span>
               </button>
             ))}
@@ -114,47 +110,62 @@ export default function InputBar({ value, onChange, onSend, loading, onStop, onC
         </div>
       )}
 
-      {/* ── INPUT ROW ── */}
-      <div className="flex items-end gap-2 bg-gray-900/80 border border-gray-800 rounded-2xl px-3 py-2">
-        {/* + button */}
-        <button
-          onClick={() => setShowPopup(s => !s)}
-          className={`flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-full transition-all ${
-            showPopup ? 'bg-blue-600 text-white rotate-45' : 'text-gray-500 hover:text-blue-400'
-          }`}
-          style={{ fontSize: '20px', fontWeight: 300 }}>
-          +
-        </button>
-
+      {/* ── MAIN INPUT BOX — ChatGPT style ── */}
+      <div className="flex flex-col bg-[#1c1f2e] border border-gray-700/60 rounded-2xl overflow-hidden shadow-lg transition-all focus-within:border-gray-600">
+        
         {/* Textarea */}
         <textarea
           ref={textareaRef} value={value}
           onChange={e => { onChange(e.target.value); if (showPopup) setShowPopup(false); }}
           onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onSend(); } }}
-          placeholder="Type karo..."
-          className="flex-1 bg-transparent text-gray-100 placeholder-gray-600 resize-none outline-none text-sm leading-5"
-          style={{ minHeight: '24px', maxHeight: '120px' }} rows={1} />
+          placeholder="Message karo..."
+          className="w-full bg-transparent text-gray-100 placeholder-gray-600 resize-none outline-none text-sm leading-6 px-4 pt-3.5 pb-2"
+          style={{ minHeight: '50px', maxHeight: '200px' }} rows={1} />
 
-        {/* Mic */}
-        <button onClick={startVoice}
-          className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center transition-all text-base ${
-            listening ? 'bg-red-500 animate-pulse text-white' : 'text-gray-500 hover:text-blue-400'
-          }`}>
-          🎤
-        </button>
+        {/* Bottom action row */}
+        <div className="flex items-center justify-between px-3 pb-2.5 pt-1">
+          <div className="flex items-center gap-1">
+            {/* + attach/mode button */}
+            <button
+              onClick={() => setShowPopup(s => !s)}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-sm transition-all ${
+                showPopup ? 'bg-blue-600/30 text-blue-300' : 'text-gray-500 hover:text-gray-300 hover:bg-gray-700/50'
+              }`}>
+              <span className={`transition-transform duration-200 ${showPopup ? 'rotate-45' : ''}`} style={{ fontSize: '18px', lineHeight: 1 }}>+</span>
+            </button>
 
-        {/* Send / Stop */}
-        {loading ? (
-          <button onClick={onStop}
-            className="flex-shrink-0 w-7 h-7 rounded-full bg-red-500/90 flex items-center justify-center text-white text-xs">
-            ⏹
-          </button>
-        ) : (
-          <button onClick={() => onSend()} disabled={!value.trim()}
-            className="flex-shrink-0 w-7 h-7 rounded-full bg-blue-600 disabled:bg-gray-800 flex items-center justify-center text-white text-sm font-bold transition-colors">
-            ↑
-          </button>
-        )}
+            {/* Active mode pill */}
+            <button
+              onClick={() => setShowPopup(s => !s)}
+              className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs text-gray-500 hover:text-gray-300 hover:bg-gray-700/40 transition-colors">
+              <span>{modeIcon}</span>
+              <span className="text-[11px] capitalize">{currentMode}</span>
+            </button>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            {/* Mic */}
+            <button onClick={startVoice}
+              className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all text-base ${
+                listening ? 'bg-red-500 text-white animate-pulse' : 'text-gray-600 hover:text-gray-300 hover:bg-gray-700/50'
+              }`}>
+              🎤
+            </button>
+
+            {/* Send / Stop */}
+            {loading ? (
+              <button onClick={onStop}
+                className="w-8 h-8 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center text-white text-sm hover:bg-white/20 transition-colors">
+                ⏹
+              </button>
+            ) : (
+              <button onClick={() => onSend()} disabled={!value.trim()}
+                className="w-8 h-8 rounded-xl flex items-center justify-center text-sm font-bold transition-all disabled:opacity-30 disabled:cursor-not-allowed bg-white text-black hover:bg-gray-200 disabled:bg-gray-700 disabled:text-gray-500">
+                ↑
+              </button>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
