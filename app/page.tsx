@@ -10,30 +10,24 @@ function MatrixBoot({ onDone }: { onDone: () => void }) {
     const ctx = canvas.getContext('2d')!;
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
-
     const chars = 'JARVIS01アイウエオカキクケコ∑∆∇∂∫';
     const fontSize = 12;
     const cols = Math.floor(canvas.width / fontSize);
     const drops = Array(cols).fill(1);
     let frame = 0;
-
     const messages = ['INITIALIZING JARVIS...', 'LOADING AI MODELS...', 'READY ✓'];
     let msgIdx = 0;
-
     const interval = setInterval(() => {
       ctx.fillStyle = 'rgba(10,11,15,0.05)';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.fillStyle = '#3b82f6';
       ctx.font = `${fontSize}px monospace`;
-
       drops.forEach((y, i) => {
         const text = chars[Math.floor(Math.random() * chars.length)];
         ctx.fillText(text, i * fontSize, y * fontSize);
         if (y * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
         drops[i]++;
       });
-
-      // Boot message
       if (frame % 30 === 0 && msgIdx < messages.length) {
         ctx.fillStyle = 'rgba(10,11,15,0.8)';
         ctx.fillRect(0, canvas.height / 2 - 30, canvas.width, 60);
@@ -46,23 +40,20 @@ function MatrixBoot({ onDone }: { onDone: () => void }) {
       frame++;
       if (frame > 90) { clearInterval(interval); onDone(); }
     }, 33);
-
     return () => clearInterval(interval);
   }, []);
-
-  return <canvas id="matrix-canvas" />;
+  return <canvas id="matrix-canvas" style={{ display: 'block', width: '100%', height: '100%' }} />;
 }
 
-// Error boundary
 class ErrorBoundary extends Component<{ children: React.ReactNode }, { hasError: boolean }> {
   constructor(props: any) { super(props); this.state = { hasError: false }; }
   static getDerivedStateFromError() { return { hasError: true }; }
   render() {
     if (this.state.hasError) return (
-      <div className="flex flex-col h-full items-center justify-center gap-4 p-8 text-center">
-        <div className="text-4xl">⚠️</div>
-        <div className="text-lg font-bold">Kuch galat ho gaya</div>
-        <button onClick={() => window.location.reload()} className="px-4 py-2 bg-blue-600 rounded-xl text-sm">Reload karo</button>
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', alignItems: 'center', justifyContent: 'center', gap: 16, padding: 32, textAlign: 'center' }}>
+        <div style={{ fontSize: 40 }}>⚠️</div>
+        <div style={{ fontSize: 18, fontWeight: 700 }}>Kuch galat ho gaya</div>
+        <button onClick={() => window.location.reload()} style={{ padding: '8px 20px', background: '#2563eb', borderRadius: 12, border: 'none', color: 'white', fontSize: 14, cursor: 'pointer' }}>Reload karo</button>
       </div>
     );
     return this.props.children;
@@ -73,12 +64,12 @@ export default function Home() {
   const [booted, setBooted] = useState(false);
 
   return (
-    <div className="h-full flex flex-col">
+    // Full height, no extra header at all
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       {!booted && <MatrixBoot onDone={() => setBooted(true)} />}
       {booted && (
         <ErrorBoundary>
-          {/* No header — ChatInterface fills full height with floating controls */}
-          <div className="flex-1 relative overflow-hidden">
+          <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
             <ChatInterface />
           </div>
         </ErrorBoundary>
