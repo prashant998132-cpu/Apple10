@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
-import BottomNav from '@/components/BottomNav';
 import PinLock from '@/components/PinLock';
 
 export const metadata: Metadata = {
@@ -26,10 +25,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="bg-[#0a0b0f] text-gray-100 overflow-hidden" style={{ height: '100dvh' }}>
         <PinLock>
-          <main className="h-full overflow-hidden" style={{ paddingBottom: '56px' }}>
+          {/* No BottomNav — full screen for chat */}
+          <main className="h-full overflow-hidden">
             {children}
           </main>
-          <BottomNav />
         </PinLock>
       </body>
     </html>
