@@ -1,7 +1,5 @@
 'use client';
 import { useRef, useState, useEffect } from 'react';
-import ChatHistorySidebar from '@/components/ChatHistorySidebar';
-import Link from 'next/link';
 
 interface Props {
   value: string; onChange: (v: string) => void;
@@ -112,21 +110,6 @@ export default function InputBar({
 
         </div>
       )}
-
-      {/* ── TOP ROW: history + status (tiny, above input) ── */}
-      <div className="flex items-center justify-between mb-1 px-1">
-        <div className="flex items-center gap-1">
-          {onSessionSelect && (
-            <ChatHistorySidebar onSelect={onSessionSelect} currentSession={sessionId} />
-          )}
-          {toolsRunning && <span className="text-[10px] text-yellow-400 animate-pulse">🔧</span>}
-          {puterReady && <span className="text-[9px] text-green-600">⚡</span>}
-        </div>
-        <div className="flex items-center gap-2">
-          <button onClick={onCompress} className="text-[13px] text-gray-600 hover:text-gray-400 transition-colors">✂️</button>
-          <Link href="/settings" className="text-[13px] text-gray-600 hover:text-gray-400 transition-colors">⚙️</Link>
-        </div>
-      </div>
 
       {/* ── MAIN INPUT BOX ── */}
       <div className="flex flex-col bg-[#1c1f2e] border border-gray-700/60 rounded-2xl overflow-hidden shadow-lg transition-all focus-within:border-gray-600">
