@@ -15,6 +15,7 @@ import FollowUpChips from './FollowUpChips';
 import ThinkBubble from './ThinkBubble';
 import CommandPalette from '@/components/CommandPalette';
 import ChatHistorySidebar from '@/components/ChatHistorySidebar';
+import TopBar from '@/components/TopBar';
 import CompressPopup from '@/components/CompressPopup';
 import confetti from 'canvas-confetti';
 
@@ -336,8 +337,18 @@ export default function ChatInterface() {
       {showCompress && <CompressPopup onClose={() => setShowCompress(false)} />}
 
       {/* ── MESSAGES — FULL HEIGHT, zero header rows ── */}
-      <div className="flex-1 overflow-y-auto" style={{ paddingTop: '4px' }}>
-        <div className="max-w-2xl mx-auto px-4 py-4 space-y-5 pb-6">
+      <div className="flex-1 overflow-y-auto" style={{ paddingTop: '0px' }}>
+
+        {/* ── TOP FLOATING BAR ── */}
+        <TopBar
+          onCompress={() => setShowCompress(true)}
+          onSessionSelect={loadSession}
+          currentSession={sessionId}
+          toolsRunning={toolsRunning}
+          puterReady={puterReady}
+        />
+
+        <div className="max-w-2xl mx-auto px-4 py-2 space-y-5 pb-6">
 
           {/* Pinned bar */}
           {pinnedList.length > 0 && (
@@ -395,7 +406,7 @@ export default function ChatInterface() {
       </div>
 
       {/* ── INPUT BAR — bottom, no border/bg overhead, ChatGPT style ── */}
-      <div className="flex-shrink-0 px-4 pb-3 pt-2 bg-gradient-to-t from-[#0a0b0f] via-[#0a0b0f] to-transparent">
+      <div className="flex-shrink-0 px-4 pb-5 pt-1 bg-gradient-to-t from-[#0a0b0f] via-[#0a0b0f] to-transparent">
         <div className="max-w-2xl mx-auto">
           <InputBar
             value={input} onChange={setInput}
@@ -409,9 +420,7 @@ export default function ChatInterface() {
             toolsRunning={toolsRunning}
             puterReady={puterReady}
           />
-          <p className="text-center text-[10px] text-gray-700 mt-1.5">
-            JARVIS — galti ho sakti hai, important info verify karo
-          </p>
+
         </div>
       </div>
     </div>
