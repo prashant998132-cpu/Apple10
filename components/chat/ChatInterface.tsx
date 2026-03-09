@@ -31,7 +31,7 @@ export default function ChatInterface() {
   const [loading, setLoading] = useState(false);
   const [thinkMode, setThinkMode] = useState<'auto'|'flash'|'think'|'deep'>('auto');
   const [personality, setPersonality] = useState<PersonalityMode>('default');
-  const [sessionId] = useState(() => `session_${Date.now()}`);
+  const [sessionId, setSessionId] = useState(() => `session_${Date.now()}`);
   const [showCompress, setShowCompress] = useState(false);
   const [relationship, setRelationship] = useState({ name: 'Stranger', icon: '🌱', next: 100 });
   const [pinnedMsgs, setPinnedMsgs] = useState<string[]>([]);
@@ -319,9 +319,14 @@ export default function ChatInterface() {
   };
 
   const loadSession = async (sid: string) => {
+    setSessionId(sid);
     const db = getDB(); if (!db) return;
     const msgs = await db.messages.where('sessionId').equals(sid).sortBy('ts');
-    if (msgs.length > 0) setMessages(msgs.map(m => ({ id: String(m.id || Date.now()), role: m.role as 'user'|'assistant', content: m.content, ts: m.ts })));
+    if (msgs.length > 0) {
+      setMessages(msgs.map(m => ({ id: String(m.id || Date.now()), role: m.role as 'user'|'assistant', content: m.content, ts: m.ts })));
+    } else {
+      setMessages([]);
+    }
   };
 
   const pinnedList = messages.filter(m => m.pinned);
@@ -330,26 +335,8 @@ export default function ChatInterface() {
     <div className="flex flex-col bg-[#0a0b0f]" style={{ height: '100%', overflow: 'hidden' }}>
       {showCompress && <CompressPopup onClose={() => setShowCompress(false)} />}
 
-      {/* ── FLOATING top-left controls (no header bar) ── */}
-      <div className="absolute top-2 left-2 z-40 flex items-center gap-1.5 pointer-events-auto">
-        <ChatHistorySidebar onSelect={loadSession} currentSession={sessionId} />
-        <span className={`text-[10px] px-1.5 py-0.5 rounded-full border ${
-          relationship.name === 'JARVIS MODE' ? 'border-blue-500/50 text-blue-400 bg-blue-500/10' : 'border-gray-800 text-gray-600 bg-transparent'
-        }`}>
-          {relationship.icon} {relationship.name}
-        </span>
-        {toolsRunning && <span className="text-[10px] text-yellow-400 animate-pulse">🔧</span>}
-        {puterReady && <span className="text-[10px] text-green-500/70">⚡</span>}
-      </div>
-
-      {/* ── FLOATING top-right controls ── */}
-      <div className="absolute top-2 right-2 z-40 flex items-center gap-1.5 pointer-events-auto">
-        <CommandPalette onCommand={sendMessage} />
-        <button onClick={() => setShowCompress(true)} className="text-gray-600 hover:text-gray-400 text-sm px-1">✂️</button>
-      </div>
-
-      {/* ── MESSAGES — full height, ChatGPT centered ── */}
-      <div className="flex-1 overflow-y-auto" style={{ paddingTop: '36px' }}>
+      {/* ── MESSAGES — FULL HEIGHT, zero header rows ── */}
+      <div className="flex-1 overflow-y-auto" style={{ paddingTop: '4px' }}>
         <div className="max-w-2xl mx-auto px-4 py-4 space-y-5 pb-6">
 
           {/* Pinned bar */}
@@ -417,6 +404,10 @@ export default function ChatInterface() {
             onCompress={() => setShowCompress(true)}
             currentMode={thinkMode}
             onModeChange={m => setThinkMode(m as any)}
+            sessionId={sessionId}
+            onSessionSelect={loadSession}
+            toolsRunning={toolsRunning}
+            puterReady={puterReady}
           />
           <p className="text-center text-[10px] text-gray-700 mt-1.5">
             JARVIS — galti ho sakti hai, important info verify karo
