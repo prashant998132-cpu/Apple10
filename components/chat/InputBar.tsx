@@ -1,11 +1,15 @@
 'use client';
 import { useRef, useState, useEffect } from 'react';
+import ChatHistorySidebar from '@/components/ChatHistorySidebar';
+import Link from 'next/link';
 
 interface Props {
   value: string; onChange: (v: string) => void;
   onSend: (text?: string) => void; loading: boolean;
   onStop: () => void; onCompress: () => void;
   currentMode?: string; onModeChange?: (mode: string) => void;
+  sessionId?: string; onSessionSelect?: (id: string) => void;
+  toolsRunning?: boolean; puterReady?: boolean;
 }
 
 const MODES = [
@@ -21,21 +25,23 @@ const ATTACH = [
   { id: 'voice',  icon: '🎵', label: 'Voice note', accept: 'audio/*' },
 ];
 
-export default function InputBar({ value, onChange, onSend, loading, onStop, onCompress, currentMode = 'flash', onModeChange }: Props) {
+export default function InputBar({
+  value, onChange, onSend, loading, onStop, onCompress,
+  currentMode = 'flash', onModeChange,
+  sessionId = '', onSessionSelect,
+  toolsRunning, puterReady
+}: Props) {
   const [listening, setListening] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const popupRef = useRef<HTMLDivElement>(null);
 
-  // Auto-resize textarea
   useEffect(() => {
-    const el = textareaRef.current;
-    if (!el) return;
+    const el = textareaRef.current; if (!el) return;
     el.style.height = 'auto';
     el.style.height = Math.min(el.scrollHeight, 200) + 'px';
   }, [value]);
 
-  // Close popup on outside click
   useEffect(() => {
     if (!showPopup) return;
     const h = (e: MouseEvent) => { if (popupRef.current && !popupRef.current.contains(e.target as Node)) setShowPopup(false); };
@@ -66,13 +72,11 @@ export default function InputBar({ value, onChange, onSend, loading, onStop, onC
           {...(a.capture ? { capture: a.capture as any } : {})} />
       ))}
 
-      {/* ── POPUP (MODE + ATTACH) ── */}
+      {/* ── POPUP ── */}
       {showPopup && (
         <div ref={popupRef}
           className="absolute bottom-full left-0 mb-3 z-50 bg-[#161b26] border border-gray-700/80 rounded-2xl shadow-2xl overflow-hidden"
           style={{ minWidth: '200px' }}>
-          
-          {/* MODE */}
           <div className="px-3 pt-3">
             <p className="text-[10px] font-bold text-gray-600 tracking-widest uppercase mb-2">Mode</p>
             {MODES.map(m => (
@@ -81,17 +85,14 @@ export default function InputBar({ value, onChange, onSend, loading, onStop, onC
                 className={`flex items-center gap-3 w-full px-2 py-2.5 rounded-xl mb-0.5 transition-all ${
                   currentMode === m.id ? 'bg-blue-600/25 text-blue-300' : 'text-gray-300 hover:bg-gray-800/60'
                 }`}>
-                <span className="text-xl w-7 text-center leading-none">{m.icon}</span>
+                <span className="text-xl w-7 text-center">{m.icon}</span>
                 <span className="text-sm font-medium flex-1 text-left">{m.label}</span>
                 <span className="text-[10px] text-gray-600">{m.desc}</span>
                 {currentMode === m.id && <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />}
               </button>
             ))}
           </div>
-
           <div className="mx-3 my-2 border-t border-gray-800" />
-
-          {/* ATTACH */}
           <div className="px-3 pb-3">
             <p className="text-[10px] font-bold text-gray-600 tracking-widest uppercase mb-2">Attach</p>
             {ATTACH.map(a => (
@@ -102,7 +103,7 @@ export default function InputBar({ value, onChange, onSend, loading, onStop, onC
                   document.getElementById(`inp-${a.id}`)?.click();
                 }}
                 className="flex items-center gap-3 w-full px-2 py-2.5 rounded-xl mb-0.5 text-gray-300 hover:bg-gray-800/60 transition-all">
-                <span className="text-xl w-7 text-center leading-none">{a.icon}</span>
+                <span className="text-xl w-7 text-center">{a.icon}</span>
                 <span className="text-sm font-medium">{a.label}</span>
               </button>
             ))}
@@ -110,10 +111,23 @@ export default function InputBar({ value, onChange, onSend, loading, onStop, onC
         </div>
       )}
 
-      {/* ── MAIN INPUT BOX — ChatGPT style ── */}
+      {/* ── TOP ROW: history + status (tiny, above input) ── */}
+      <div className="flex items-center justify-between mb-1 px-1">
+        <div className="flex items-center gap-1">
+          {onSessionSelect && (
+            <ChatHistorySidebar onSelect={onSessionSelect} currentSession={sessionId} />
+          )}
+          {toolsRunning && <span className="text-[10px] text-yellow-400 animate-pulse">🔧 tools</span>}
+          {puterReady && <span className="text-[9px] text-green-600">⚡</span>}
+        </div>
+        <div className="flex items-center gap-2">
+          <button onClick={onCompress} className="text-[11px] text-gray-600 hover:text-gray-400 transition-colors">✂️</button>
+          <Link href="/settings" className="text-[11px] text-gray-600 hover:text-gray-400 transition-colors">⚙️</Link>
+        </div>
+      </div>
+
+      {/* ── MAIN INPUT BOX ── */}
       <div className="flex flex-col bg-[#1c1f2e] border border-gray-700/60 rounded-2xl overflow-hidden shadow-lg transition-all focus-within:border-gray-600">
-        
-        {/* Textarea */}
         <textarea
           ref={textareaRef} value={value}
           onChange={e => { onChange(e.target.value); if (showPopup) setShowPopup(false); }}
@@ -122,37 +136,26 @@ export default function InputBar({ value, onChange, onSend, loading, onStop, onC
           className="w-full bg-transparent text-gray-100 placeholder-gray-600 resize-none outline-none text-sm leading-6 px-4 pt-3.5 pb-2"
           style={{ minHeight: '50px', maxHeight: '200px' }} rows={1} />
 
-        {/* Bottom action row */}
         <div className="flex items-center justify-between px-3 pb-2.5 pt-1">
           <div className="flex items-center gap-1">
-            {/* + attach/mode button */}
             <button
               onClick={() => setShowPopup(s => !s)}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-sm transition-all ${
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-sm transition-all ${
                 showPopup ? 'bg-blue-600/30 text-blue-300' : 'text-gray-500 hover:text-gray-300 hover:bg-gray-700/50'
               }`}>
               <span className={`transition-transform duration-200 ${showPopup ? 'rotate-45' : ''}`} style={{ fontSize: '18px', lineHeight: 1 }}>+</span>
             </button>
-
-            {/* Active mode pill */}
-            <button
-              onClick={() => setShowPopup(s => !s)}
+            <button onClick={() => setShowPopup(s => !s)}
               className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs text-gray-500 hover:text-gray-300 hover:bg-gray-700/40 transition-colors">
               <span>{modeIcon}</span>
               <span className="text-[11px] capitalize">{currentMode}</span>
             </button>
           </div>
-
           <div className="flex items-center gap-1.5">
-            {/* Mic */}
             <button onClick={startVoice}
               className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all text-base ${
                 listening ? 'bg-red-500 text-white animate-pulse' : 'text-gray-600 hover:text-gray-300 hover:bg-gray-700/50'
-              }`}>
-              🎤
-            </button>
-
-            {/* Send / Stop */}
+              }`}>🎤</button>
             {loading ? (
               <button onClick={onStop}
                 className="w-8 h-8 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center text-white text-sm hover:bg-white/20 transition-colors">
@@ -160,7 +163,7 @@ export default function InputBar({ value, onChange, onSend, loading, onStop, onC
               </button>
             ) : (
               <button onClick={() => onSend()} disabled={!value.trim()}
-                className="w-8 h-8 rounded-xl flex items-center justify-center text-sm font-bold transition-all disabled:opacity-30 disabled:cursor-not-allowed bg-white text-black hover:bg-gray-200 disabled:bg-gray-700 disabled:text-gray-500">
+                className="w-8 h-8 rounded-xl flex items-center justify-center text-sm font-bold transition-all disabled:opacity-30 bg-white text-black hover:bg-gray-200 disabled:bg-gray-700 disabled:text-gray-500">
                 ↑
               </button>
             )}
