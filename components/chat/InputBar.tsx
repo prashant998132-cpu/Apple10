@@ -75,26 +75,27 @@ export default function InputBar({
       {/* ── POPUP ── */}
       {showPopup && (
         <div ref={popupRef}
-          className="absolute bottom-full left-0 mb-3 z-50 bg-[#161b26] border border-gray-700/80 rounded-2xl shadow-2xl overflow-hidden"
-          style={{ minWidth: '200px' }}>
-          <div className="px-3 pt-3">
-            <p className="text-[10px] font-bold text-gray-600 tracking-widest uppercase mb-2">Mode</p>
+          className="absolute bottom-full left-0 mb-2 z-50 bg-[#161b26] border border-gray-700/80 rounded-2xl shadow-2xl overflow-hidden"
+          style={{ minWidth: '190px', maxHeight: '75vh', overflowY: 'auto' }}>
+          {/* MODE */}
+          <div className="px-2 pt-2">
+            <p className="text-[9px] font-bold text-gray-600 tracking-widest uppercase mb-1 px-1">Mode</p>
             {MODES.map(m => (
               <button key={m.id}
                 onClick={() => { onModeChange?.(m.id); setShowPopup(false); if (navigator.vibrate) navigator.vibrate(20); }}
-                className={`flex items-center gap-3 w-full px-2 py-2.5 rounded-xl mb-0.5 transition-all ${
+                className={`flex items-center gap-2 w-full px-2 py-2 rounded-xl mb-0.5 transition-all ${
                   currentMode === m.id ? 'bg-blue-600/25 text-blue-300' : 'text-gray-300 hover:bg-gray-800/60'
                 }`}>
-                <span className="text-xl w-7 text-center">{m.icon}</span>
+                <span className="text-lg w-6 text-center leading-none">{m.icon}</span>
                 <span className="text-sm font-medium flex-1 text-left">{m.label}</span>
-                <span className="text-[10px] text-gray-600">{m.desc}</span>
-                {currentMode === m.id && <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />}
+                {currentMode === m.id && <span className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0" />}
               </button>
             ))}
           </div>
-          <div className="mx-3 my-2 border-t border-gray-800" />
-          <div className="px-3 pb-3">
-            <p className="text-[10px] font-bold text-gray-600 tracking-widest uppercase mb-2">Attach</p>
+          <div className="mx-2 my-1.5 border-t border-gray-800" />
+          {/* ATTACH */}
+          <div className="px-2 pb-2">
+            <p className="text-[9px] font-bold text-gray-600 tracking-widest uppercase mb-1 px-1">Attach</p>
             {ATTACH.map(a => (
               <button key={a.id}
                 onClick={() => {
@@ -102,12 +103,13 @@ export default function InputBar({
                   if (a.id === 'voice') { startVoice(); return; }
                   document.getElementById(`inp-${a.id}`)?.click();
                 }}
-                className="flex items-center gap-3 w-full px-2 py-2.5 rounded-xl mb-0.5 text-gray-300 hover:bg-gray-800/60 transition-all">
-                <span className="text-xl w-7 text-center">{a.icon}</span>
+                className="flex items-center gap-2 w-full px-2 py-2 rounded-xl mb-0.5 text-gray-300 hover:bg-gray-800/60 transition-all">
+                <span className="text-lg w-6 text-center leading-none">{a.icon}</span>
                 <span className="text-sm font-medium">{a.label}</span>
               </button>
             ))}
           </div>
+
         </div>
       )}
 
@@ -117,12 +119,12 @@ export default function InputBar({
           {onSessionSelect && (
             <ChatHistorySidebar onSelect={onSessionSelect} currentSession={sessionId} />
           )}
-          {toolsRunning && <span className="text-[10px] text-yellow-400 animate-pulse">🔧 tools</span>}
+          {toolsRunning && <span className="text-[10px] text-yellow-400 animate-pulse">🔧</span>}
           {puterReady && <span className="text-[9px] text-green-600">⚡</span>}
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={onCompress} className="text-[11px] text-gray-600 hover:text-gray-400 transition-colors">✂️</button>
-          <Link href="/settings" className="text-[11px] text-gray-600 hover:text-gray-400 transition-colors">⚙️</Link>
+          <button onClick={onCompress} className="text-[13px] text-gray-600 hover:text-gray-400 transition-colors">✂️</button>
+          <Link href="/settings" className="text-[13px] text-gray-600 hover:text-gray-400 transition-colors">⚙️</Link>
         </div>
       </div>
 
