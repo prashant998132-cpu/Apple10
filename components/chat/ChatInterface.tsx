@@ -17,6 +17,9 @@ import CommandPalette from '@/components/CommandPalette';
 import ChatHistorySidebar from '@/components/ChatHistorySidebar';
 import TopBar from '@/components/TopBar';
 import CompressPopup from '@/components/CompressPopup';
+import ToastContainer, { showToast } from '@/components/Toast';
+import PWAInstall from '@/components/PWAInstall';
+import { generateSessionTitle, quickTitle } from '@/lib/intelligence';
 // canvas-confetti removed — canvas:false in webpack
 
 export interface Message {
@@ -37,6 +40,7 @@ export default function ChatInterface() {
   const [relationship, setRelationship] = useState({ name: 'Stranger', icon: '🌱', next: 100 });
   const [pinnedMsgs, setPinnedMsgs] = useState<string[]>([]);
   const [puterReady, setPuterReady] = useState(false);
+  const [sessionTitle, setSessionTitle] = useState('Naya Chat');
   const [toolsRunning, setToolsRunning] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -136,6 +140,24 @@ export default function ChatInterface() {
 
     const userMsg: Message = { id: `u_${Date.now()}`, role: 'user', content: userText, ts: Date.now() };
     setMessages(prev => [...prev, userMsg]);
+
+    // Generate session title from first user message
+    if (messages.filter(m => m.role === 'user').length === 0) {
+      const instant = quickTitle(userText);
+      setSessionTitle(instant);
+      if (typeof window !== 'undefined') {
+        try { localStorage.setItem(`session_title_${sessionId}`, instant); } catch {}
+      }
+      // Background: generate smarter title via Groq
+      generateSessionTitle(userText, process.env.NEXT_PUBLIC_GROQ_KEY).then(smart => {
+        if (smart && smart !== instant) {
+          setSessionTitle(smart);
+          if (typeof window !== 'undefined') {
+            try { localStorage.setItem(`session_title_${sessionId}`, smart); } catch {}
+          }
+        }
+      }).catch(() => {});
+    }
     setLoading(true);
 
     const db = getDB();
@@ -284,7 +306,7 @@ export default function ChatInterface() {
 
       const { leveled, level } = await addXP(2);
       if (leveled) {
-        // confetti removed
+        showToast(`Level Up! Ab Level ${level} ho gaye! 🏆`, '🎉', 'success');
         setMessages(prev => [...prev, { id: `lv_${Date.now()}`, role: 'assistant', ts: Date.now(), content: `🏆 **Level Up! Jons Bhai ab Level ${level} hai!** 🎉` }]);
       }
       setRelationship(getRelationshipName((await getProfile()).xp || 0));
@@ -334,6 +356,7 @@ export default function ChatInterface() {
 
   return (
     <div className="flex flex-col bg-[#0a0b0f]" style={{ height: '100%', overflow: 'hidden' }}>
+      <ToastContainer />
       {showCompress && <CompressPopup onClose={() => setShowCompress(false)} />}
 
       {/* ── MESSAGES — FULL HEIGHT, zero header rows ── */}
