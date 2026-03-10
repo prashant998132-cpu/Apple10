@@ -4,6 +4,15 @@ import { createPortal } from 'react-dom';
 import { getDB } from '@/lib/db';
 
 interface Session { id: string; title: string; preview: string; ts: number; count: number; }
+
+function getStoredTitle(sessionId: string): string {
+  if (typeof window === 'undefined') return '';
+  try { return localStorage.getItem(`session_title_${sessionId}`) || ''; } catch { return ''; }
+}
+function setStoredTitle(sessionId: string, title: string) {
+  if (typeof window === 'undefined') return;
+  try { localStorage.setItem(`session_title_${sessionId}`, title); } catch {}
+}
 interface Props { onSelect: (sessionId: string) => void; currentSession: string; }
 
 function groupByDate(sessions: Session[]) {
@@ -37,7 +46,10 @@ export default function ChatHistorySidebar({ onSelect, currentSession }: Props) 
       const s = map.get(m.sessionId)!;
       s.count++;
       s.ts = Math.max(s.ts, m.ts);
-      if (m.role === 'user' && !s.title) s.title = m.content.slice(0, 40);
+      if (m.role === 'user' && !s.title) {
+        const stored = getStoredTitle(m.sessionId);
+        s.title = stored || m.content.slice(0, 40);
+      }
       if (m.role === 'user' && !s.preview) s.preview = m.content.slice(0, 50);
     }
     setSessions([...map.values()].sort((a, b) => b.ts - a.ts).slice(0, 40));
