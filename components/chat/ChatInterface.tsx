@@ -17,7 +17,7 @@ import CommandPalette from '@/components/CommandPalette';
 import ChatHistorySidebar from '@/components/ChatHistorySidebar';
 import TopBar from '@/components/TopBar';
 import CompressPopup from '@/components/CompressPopup';
-import confetti from 'canvas-confetti';
+// canvas-confetti removed — canvas:false in webpack
 
 export interface Message {
   id: string; role: 'user' | 'assistant'; content: string; ts: number;
@@ -229,7 +229,7 @@ export default function ChatInterface() {
             if (db) await db.messages.add({ sessionId, role: 'assistant', content: fullText, ts: Date.now() });
             syncMessageToCloud({ session_id: sessionId, role: 'assistant', content: fullText, ts: Date.now() }).catch(() => {});
             const { leveled, level } = await addXP(3);
-            if (leveled) confetti({ particleCount: 80, spread: 60, origin: { y: 0.8 } });
+            if (leveled) // confetti removed
             setRelationship(getRelationshipName((await getProfile()).xp || 0));
             setLoading(false); return;
           }
@@ -284,7 +284,7 @@ export default function ChatInterface() {
 
       const { leveled, level } = await addXP(2);
       if (leveled) {
-        confetti({ particleCount: 80, spread: 60, origin: { y: 0.8 } });
+        // confetti removed
         setMessages(prev => [...prev, { id: `lv_${Date.now()}`, role: 'assistant', ts: Date.now(), content: `🏆 **Level Up! Jons Bhai ab Level ${level} hai!** 🎉` }]);
       }
       setRelationship(getRelationshipName((await getProfile()).xp || 0));
