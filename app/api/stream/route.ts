@@ -20,6 +20,7 @@ async function* streamGroq(messages: any[], model: string, apiKey: string) {
   const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
     headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    signal: AbortSignal.timeout(9000),
     body: JSON.stringify({ model, messages, stream: true, max_tokens: 2048, temperature: 0.7 }),
   });
   if (!r.ok) throw new Error(`Groq ${r.status}`);
