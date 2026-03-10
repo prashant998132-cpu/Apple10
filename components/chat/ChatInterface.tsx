@@ -53,7 +53,7 @@ export default function ChatInterface() {
       const hour = new Date().getHours();
       const greet = hour < 12 ? '🌅 Subah' : hour < 17 ? '☀️ Dopahar' : hour < 21 ? '🌆 Shaam' : '🌙 Raat';
       const rel = getRelationshipName(p.xp || 0);
-      const welcomeMsg = `**Namaste Jons Bhai! ${greet} mubarak.** ${rel.icon}\n\n${p.name ? `${p.name}, aaj kya karte hain?` : 'Kya help chahiye?'}\n\n💡 \`/weather\` \`/news\` \`/crypto\` \`/joke\` \`/help\` ya kuch bhi poocho!\n*⌨️ Ctrl+K = command palette*`;
+      const welcomeMsg = `**Namaste Jons Bhai! ${greet} mubarak.** ${rel.icon}\n\n${p.name ? `${p.name}, aaj kya plan hai?` : 'Kya help chahiye aaj?'}\n\n💡 Try karo: \`/weather\` \`/news\` \`/crypto\` \`/joke\` \`/image [kuch bhi]\`\n\n*Tip: Ctrl+K = command palette | Swipe right = like | Swipe left = copy*`;
       setMessages([{ id: 'welcome', role: 'assistant', ts: Date.now(), content: welcomeMsg }]);
 
       // Auto morning briefing (8-10am only, once per day)
@@ -384,15 +384,15 @@ export default function ChatInterface() {
 
           {/* Typing indicator */}
           {(loading || toolsRunning) && (
-            <div className="flex items-center gap-2 py-1 pl-1">
-              <div className="flex gap-1">
+            <div className="flex items-center gap-3 py-1 pl-1 fade-in">
+              <div className="flex gap-1.5 items-center">
                 {[0,1,2].map(i => (
-                  <div key={i} className="w-1.5 h-1.5 rounded-full bg-blue-500/60 animate-bounce"
-                    style={{ animationDelay: `${i * 0.15}s` }} />
+                  <div key={i} className="typing-dot rounded-full"
+                    style={{ width: 6, height: 6, background: '#3b82f6', opacity: 0.5 }} />
                 ))}
               </div>
               <span className="text-xs text-gray-600">
-                {toolsRunning ? 'Tools chal rahe hain...' : thinkMode === 'think' ? 'Soch raha hoon...' : thinkMode === 'deep' ? 'Deep analysis...' : ''}
+                {toolsRunning ? '🔧 Tools chal rahe hain...' : thinkMode === 'think' ? '🧠 Soch raha hoon...' : thinkMode === 'deep' ? '🔬 Deep analysis...' : 'Likh raha hoon...'}
               </span>
             </div>
           )}
