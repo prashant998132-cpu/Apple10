@@ -105,3 +105,41 @@ export function keywordFallback(query: string): string {
 
   return `🤔 Internet lagta hai slow hai — but main hoon! "${query}" ke baare mein offline mode mein answer dene ki koshish kar raha hoon. Thodi der mein internet aane par better jawab milega.`;
 }
+
+// ── AI Session Title Generator ─────────────────────────────────
+// Step 1: instant keyword title (no API)
+// Step 2: Groq generates smart title silently in background
+export function quickTitle(text: string): string {
+  const t = text.trim();
+  if (!t) return 'Naya Chat';
+  // Remove slash commands
+  const clean = t.replace(/^\/\w+\s*/, '').trim();
+  // Capitalize and truncate
+  const words = clean.split(' ').slice(0, 5).join(' ');
+  return words.charAt(0).toUpperCase() + words.slice(1) || 'Naya Chat';
+}
+
+export async function generateSessionTitle(text: string, groqKey?: string): Promise<string> {
+  if (!groqKey) return quickTitle(text);
+  try {
+    const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${groqKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'llama-3.1-8b-instant', // cheapest — title ke liye kaafi hai
+        messages: [
+          { role: 'system', content: 'Generate a short 3-5 word chat title in the same language as the user message. No quotes, no punctuation. Just the title.' },
+          { role: 'user', content: text.slice(0, 200) }
+        ],
+        max_tokens: 20, temperature: 0.3,
+      }),
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!r.ok) return quickTitle(text);
+    const d = await r.json();
+    const title = d.choices?.[0]?.message?.content?.trim();
+    return title || quickTitle(text);
+  } catch {
+    return quickTitle(text);
+  }
+}
