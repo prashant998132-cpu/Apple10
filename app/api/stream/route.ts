@@ -177,7 +177,7 @@ export async function POST(req: NextRequest) {
         providers.push({ name: 'Groq-DeepSeek', gen: () => streamGroq(allMsgs, 'deepseek-r1-distill-llama-70b', groqKey) });
         providers.push({ name: 'Gemini', gen: () => streamGemini(messages, system, geminiKey!) });
       } else if (mode === 'flash') {
-        if (groqKey) providers.push({ name: 'Groq-Flash', gen: () => streamGroq(allMsgs, 'llama-3.1-8b-instant', groqKey) });
+        if (groqKey) providers.push({ name: 'Groq-Flash', gen: () => streamGroq(allMsgs, 'llama-3.3-70b-versatile', groqKey) });
       } else {
         // auto — try best available
         if (groqKey) providers.push({ name: 'Groq', gen: () => streamGroq(allMsgs, 'llama-3.3-70b-versatile', groqKey) });
