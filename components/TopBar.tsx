@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import ChatHistorySidebar from './ChatHistorySidebar';
+import PWAInstall from './PWAInstall';
 
 const PAGES = [
   { href: '/',         icon: '💬', label: 'Chat',     desc: 'Back to chat' },
@@ -104,6 +105,7 @@ export default function TopBar({ onCompress, onSessionSelect, currentSession, to
           {puterReady && (
             <span className="text-[9px] text-green-500/50 font-medium">⚡</span>
           )}
+          <PWAInstall />
         </div>
 
         {/* Right: ☰ menu button */}
