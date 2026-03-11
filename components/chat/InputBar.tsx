@@ -50,14 +50,50 @@ export default function InputBar({
   const startVoice = () => {
     setShowPopup(false);
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SR) return;
-    const rec = new SR();
-    rec.lang = 'hi-IN'; rec.continuous = false; rec.interimResults = true;
-    rec.onresult = (e: any) => onChange(Array.from(e.results).map((r: any) => r[0].transcript).join(''));
-    rec.onend = () => { setListening(false); setTimeout(() => onSend(), 300); };
-    rec.onerror = () => setListening(false);
-    rec.start(); setListening(true);
-    if (navigator.vibrate) navigator.vibrate([30, 50, 30]);
+    if (SR) {
+      // Browser native STT (Chrome/Edge)
+      const rec = new SR();
+      rec.lang = 'hi-IN'; rec.continuous = false; rec.interimResults = true;
+      rec.onresult = (e: any) => onChange(Array.from(e.results).map((r: any) => r[0].transcript).join(''));
+      rec.onend = () => { setListening(false); setTimeout(() => { if (value.trim()) onSend(); }, 300); };
+      rec.onerror = () => { setListening(false); startWhisperSTT(); }; // fallback on error
+      rec.start(); setListening(true);
+      if (navigator.vibrate) navigator.vibrate([30, 50, 30]);
+    } else {
+      // Groq Whisper fallback — record audio then transcribe
+      startWhisperSTT();
+    }
+  };
+
+  const startWhisperSTT = async () => {
+    if (!navigator.mediaDevices?.getUserMedia) return;
+    try {
+      setListening(true);
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+      const chunks: Blob[] = [];
+      recorder.ondataavailable = e => chunks.push(e.data);
+      recorder.onstop = async () => {
+        stream.getTracks().forEach(t => t.stop());
+        const blob = new Blob(chunks, { type: 'audio/webm' });
+        const fd = new FormData();
+        fd.append('file', blob, 'audio.webm');
+        fd.append('model', 'whisper-large-v3-turbo');
+        fd.append('language', 'hi');
+        try {
+          const groqKey = process.env.NEXT_PUBLIC_GROQ_KEY || '';
+          // Use our /api/stt endpoint
+          const r = await fetch('/api/stt', { method: 'POST', body: fd });
+          if (r.ok) { const d = await r.json(); if (d.text) onChange(d.text); }
+        } catch {}
+        setListening(false);
+      };
+      recorder.start();
+      // Auto stop after 10s
+      setTimeout(() => { if (recorder.state === 'recording') recorder.stop(); }, 10000);
+      // Manual stop on next voice button press — store recorder ref
+      (window as any)._whisperRecorder = recorder;
+    } catch { setListening(false); }
   };
 
   const currentModeObj = MODES.find(m => m.id === currentMode) || MODES[3];
