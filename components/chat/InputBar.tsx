@@ -163,6 +163,21 @@ export default function InputBar({
               <span>{currentModeObj.icon}</span>
               <span className="font-medium">{currentModeObj.label}</span>
             </button>
+            {/* Compress button — chhota sa */}
+            <button onClick={onCompress}
+              title="Compress context"
+              style={{
+                width: 28, height: 28, borderRadius: 8,
+                background: 'rgba(255,255,255,0.03)',
+                border: '1px solid rgba(255,255,255,0.06)',
+                color: '#4b5563', fontSize: 13, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'all 0.15s',
+              }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = '#9ca3af'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = '#4b5563'; }}>
+              ✂️
+            </button>
           </div>
 
           {/* Right: mic + send */}
