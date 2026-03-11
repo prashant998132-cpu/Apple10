@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { detectConversationMode, detectEmotion, detectThinkMode, getSystemPrompt, keywordFallback, PersonalityMode } from '@/lib/intelligence';
 import { addXP, updateStreak, getProfile, saveMemory, extractProfileInfo, logEmotion, trackTopic, getRelationshipName } from '@/lib/memory';
+import { getLocation, getCachedLocation, formatLocation } from '@/lib/location';
 import { startProactiveEngine, speakText } from '@/lib/proactive';
 import { searchMemoryVectors, storeMemoryVector } from '@/lib/vectorMemory';
 import { syncMessageToCloud } from '@/lib/supabase';
@@ -20,6 +21,8 @@ import CompressPopup from '@/components/CompressPopup';
 import ToastContainer, { showToast } from '@/components/Toast';
 import PWAInstall from '@/components/PWAInstall';
 import { generateSessionTitle, quickTitle } from '@/lib/intelligence';
+import { detectAppsForQuery, isAppEnabled } from '@/lib/connectedApps';
+import { extractAndStoreFacts, getRelevantMemories, getProactiveSuggestion, getMemorySummary } from '@/lib/crossSessionMemory';
 // canvas-confetti removed — canvas:false in webpack
 
 export interface Message {
@@ -60,6 +63,16 @@ export default function ChatInterface() {
       const welcomeMsg = `**Namaste Jons Bhai! ${greet} mubarak.** ${rel.icon}\n\n${p.name ? `${p.name}, aaj kya plan hai?` : 'Kya help chahiye aaj?'}\n\n💡 Try karo: \`/weather\` \`/news\` \`/crypto\` \`/joke\` \`/image [kuch bhi]\`\n\n*Tip: Ctrl+K = command palette | Swipe right = like | Swipe left = copy*`;
       setMessages([{ id: 'welcome', role: 'assistant', ts: Date.now(), content: welcomeMsg }]);
 
+      // Proactive suggestion from cross-session memory
+      const proactive = getProactiveSuggestion();
+      if (proactive) {
+        setTimeout(() => {
+          setMessages(prev => [...prev, {
+            id: `ps_${Date.now()}`, role: 'assistant', ts: Date.now(), content: proactive
+          }]);
+        }, 3000);
+      }
+
       // Auto morning briefing (8-10am only, once per day)
       if (hour >= 8 && hour <= 10) {
         const briefingKey = `briefed_${new Date().toDateString()}`;
@@ -78,6 +91,20 @@ export default function ChatInterface() {
 
       // Puter SDK
       loadPuter().then(ok => setPuterReady(ok));
+
+      // Fetch real location silently
+      const cachedLoc = getCachedLocation();
+      if (!cachedLoc) {
+        getLocation().then(loc => {
+          if (loc.city && typeof window !== 'undefined') {
+            // Save to profile for system prompt
+            const profileRaw = localStorage.getItem('jarvis_profile');
+            const profile = profileRaw ? JSON.parse(profileRaw) : {};
+            profile.location = formatLocation(loc);
+            localStorage.setItem('jarvis_profile', JSON.stringify(profile));
+          }
+        }).catch(() => {});
+      }
 
       // Service Worker
       if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
@@ -170,6 +197,40 @@ export default function ChatInterface() {
     const emotion = detectEmotion(userText);
     if (emotion !== 'neutral') logEmotion(emotion, userText);
 
+    // Handle /memory command
+    if (userText.match(/^\/memory/i)) {
+      const summary = getMemorySummary();
+      setMessages(prev => [...prev, { id: `a_${Date.now()}`, role: 'assistant', ts: Date.now(), content: summary }]);
+      setLoading(false); return;
+    }
+
+    // Handle /location command — refresh real location
+    if (userText.match(/^\/location/i)) {
+      const { getLocation, formatLocation, clearLocationCache } = await import('@/lib/location');
+      clearLocationCache();
+      const loc = await getLocation(true);
+      const locStr = formatLocation(loc);
+      showToast(locStr ? `📍 ${locStr}` : 'Location nahi mili', '📍', loc.city ? 'success' : 'warning');
+      setMessages(prev => [...prev, {
+        id: `a_${Date.now()}`, role: 'assistant', ts: Date.now(),
+        content: loc.city
+          ? `📍 **Location detected:** ${locStr}\n*Source: ${loc.source}*`
+          : '📍 Location detect nahi ho payi. Browser mein location permission allow karo.'
+      }]);
+      setLoading(false); return;
+    }
+
+    // Auto-detect connected apps for this query
+    const matchedApps = detectAppsForQuery(userText);
+    if (matchedApps.length > 0) {
+      const appDefs = (await import('@/lib/connectedApps')).APP_DEFS;
+      const names = matchedApps.slice(0, 2).map(id => {
+        const def = appDefs.find(a => a.id === id);
+        return def ? `${def.icon} ${def.name}` : id;
+      });
+      showToast(`Using: ${names.join(' + ')}`, '🔌', 'info', 2000);
+    }
+
     // Handle /image command separately
     if (userText.match(/^\/image|^\/img/i)) {
       const prompt = userText.replace(/^\/img\s*|^\/image\s*/i, '') || 'beautiful futuristic India';
@@ -226,7 +287,8 @@ export default function ChatInterface() {
     const mode = detectThinkMode(userText, thinkMode);
     const profile = await getProfile();
     const vectorResults = await searchMemoryVectors(userText, 5);
-    const memTexts = vectorResults.map(r => r.text);
+    const crossMems = getRelevantMemories(userText, 4);
+    const memTexts = [...new Set([...vectorResults.map(r => r.text), ...crossMems])];
     const system = getSystemPrompt(personality, profile, memTexts, emotion, new Date().getHours(), toolResultTexts);
     const histMsgs = messages.slice(-12).map(m => ({ role: m.role, content: m.content }));
 
@@ -302,6 +364,8 @@ export default function ChatInterface() {
       if (fullText.length > 40) {
         storeMemoryVector(`a_${Date.now()}`, fullText.slice(0, 200), { role: 'assistant' }).catch(() => {});
         saveMemory(userText.slice(0, 80), 'general', 3).catch(() => {});
+        // Cross-session learning
+        extractAndStoreFacts(userText, fullText);
       }
 
       const { leveled, level } = await addXP(2);
