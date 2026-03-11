@@ -5,7 +5,7 @@ export const maxDuration = 60;
 
 // ══════════════════════════════════════════════════════════════
 // AI MODEL ROUTER — Priority Chain
-// 1. Groq      llama-3.1-8b-instant   (Flash  — fastest, free)
+// 1. Groq      llama-3.3-70b-versatile (Flash  — fastest, free)
 // 2. Groq      deepseek-r1-distill-*  (Think  — reasoning)
 // 3. Gemini    gemini-2.0-flash       (Deep   — smartest, free)
 // 4. Mistral   mistral-small-latest   (fallback)
