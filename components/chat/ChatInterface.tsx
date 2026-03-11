@@ -12,7 +12,6 @@ import { getDB } from '@/lib/db';
 import MessageBubble from './MessageBubble';
 import InputBar from './InputBar';
 import ModeBar from './ModeBar';
-import FollowUpChips from './FollowUpChips';
 import ThinkBubble from './ThinkBubble';
 import CommandPalette from '@/components/CommandPalette';
 import ChatHistorySidebar from '@/components/ChatHistorySidebar';
@@ -501,7 +500,6 @@ export default function ChatInterface() {
           )}
 
           {!loading && messages.length > 1 && (
-            <FollowUpChips lastMessage={messages[messages.length - 1]} onSelect={sendMessage} />
           )}
 
           <div ref={bottomRef} />
