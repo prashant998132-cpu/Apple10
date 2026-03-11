@@ -22,6 +22,7 @@ import ToastContainer, { showToast } from '@/components/Toast';
 import PWAInstall from '@/components/PWAInstall';
 import { generateSessionTitle, quickTitle } from '@/lib/intelligence';
 import { trackApiCall } from '@/lib/apiStats';
+import { parseAndroidIntent, sendAndroidCommand, isAndroidTWA, MACRODROID_SETUP } from '@/lib/androidBridge';
 import { detectAppsForQuery, isAppEnabled } from '@/lib/connectedApps';
 import { extractAndStoreFacts, getRelevantMemories, getProactiveSuggestion, getMemorySummary } from '@/lib/crossSessionMemory';
 // canvas-confetti removed — canvas:false in webpack
@@ -61,7 +62,8 @@ export default function ChatInterface() {
       const hour = new Date().getHours();
       const greet = hour < 12 ? '🌅 Subah' : hour < 17 ? '☀️ Dopahar' : hour < 21 ? '🌆 Shaam' : '🌙 Raat';
       const rel = getRelationshipName(p.xp || 0);
-      const welcomeMsg = `**Namaste Jons Bhai! ${greet} mubarak.** ${rel.icon}\n\n${p.name ? `${p.name}, aaj kya plan hai?` : 'Kya help chahiye aaj?'}\n\n💡 Try karo: \`/weather\` \`/news\` \`/crypto\` \`/joke\` \`/image [kuch bhi]\`\n\n*Tip: Ctrl+K = command palette | Swipe right = like | Swipe left = copy*`;
+      const twaMode = isAndroidTWA() ? '\n\n📱 *Android Native Mode — MacroDroid bridge active*' : '';
+      const welcomeMsg = `**Namaste Jons Bhai! ${greet} mubarak.** ${rel.icon}\n\n${p.name ? `${p.name}, aaj kya plan hai?` : 'Kya help chahiye aaj?'}\n\n💡 Try karo: \`/weather\` \`/news\` \`/crypto\` \`/joke\` \`/image [kuch bhi]\`\n\n*Tip: Ctrl+K = command palette | Swipe right = like | Swipe left = copy*${twaMode}`;
       setMessages([{ id: 'welcome', role: 'assistant', ts: Date.now(), content: welcomeMsg }]);
 
       // Proactive suggestion from cross-session memory
@@ -217,6 +219,19 @@ export default function ChatInterface() {
         content: loc.city
           ? `📍 **Location detected:** ${locStr}\n*Source: ${loc.source}*`
           : '📍 Location detect nahi ho payi. Browser mein location permission allow karo.'
+      }]);
+      setLoading(false); return;
+    }
+
+    // Android automation intent detection
+    const androidCmd = parseAndroidIntent(userText);
+    if (androidCmd) {
+      const result = await sendAndroidCommand(androidCmd);
+      const responseMsg = result.ok
+        ? `✅ Done! ${result.result || androidCmd.action} executed.`
+        : `❌ ${result.error}\n\n${result.error?.includes('MacroDroid') ? MACRODROID_SETUP : ''}`;
+      setMessages(prev => [...prev, {
+        id: `a_${Date.now()}`, role: 'assistant', ts: Date.now(), content: responseMsg
       }]);
       setLoading(false); return;
     }
