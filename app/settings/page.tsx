@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import { getApiStats } from '@/lib/apiStats';
 import { APP_DEFS, getAppKeys, saveAppKey, getEnabledApps, setAppEnabled, getAppStatus, AppId } from '@/lib/connectedApps';
 
 type Cat = 'all' | 'ai' | 'media' | 'info' | 'productivity';
@@ -11,10 +12,12 @@ export default function SettingsPage() {
   const [editing, setEditing] = useState<string | null>(null);
   const [keyVal,  setKeyVal]  = useState('');
   const [saved,   setSaved]   = useState<string | null>(null);
+  const [stats,   setStats]   = useState<ReturnType<typeof getApiStats> | null>(null);
 
   useEffect(() => {
     setKeys(getAppKeys());
     setEnabled(getEnabledApps());
+    setStats(getApiStats());
   }, []);
 
   const toggleApp = (id: AppId) => {
@@ -29,6 +32,7 @@ export default function SettingsPage() {
     setAppEnabled(id, on);
     setKeys(getAppKeys());
     setEnabled(getEnabledApps());
+    setStats(getApiStats());
     setEditing(null);
     setSaved(id);
     setTimeout(() => setSaved(null), 2000);
@@ -69,6 +73,30 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
+
+      {/* API Usage Stats */}
+      {stats && (
+        <div style={{ marginBottom: 16, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 14, padding: '12px 14px' }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 10 }}>📊 Aaj ka API Usage</div>
+          {[
+            { name: 'Groq', used: stats.groq.used, limit: stats.groq.limit, color: '#f59e0b' },
+            { name: 'Gemini', used: stats.gemini.used, limit: stats.gemini.limit, color: '#3b82f6' },
+            { name: 'Mistral', used: stats.mistral.used, limit: stats.mistral.limit, color: '#8b5cf6' },
+          ].map(s => (
+            <div key={s.name} style={{ marginBottom: 8 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                <span style={{ fontSize: 12, color: '#9ca3af' }}>{s.name}</span>
+                <span style={{ fontSize: 11, color: s.used > s.limit * 0.8 ? '#ef4444' : '#6b7280' }}>
+                  {s.used}/{s.limit.toLocaleString()}
+                </span>
+              </div>
+              <div style={{ height: 4, background: 'rgba(255,255,255,0.05)', borderRadius: 99, overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${Math.min(100, s.used/s.limit*100)}%`, background: s.color, borderRadius: 99, transition: 'width 0.5s' }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Category tabs */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 14, overflowX: 'auto' }}>
