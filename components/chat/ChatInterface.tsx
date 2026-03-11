@@ -21,6 +21,7 @@ import CompressPopup from '@/components/CompressPopup';
 import ToastContainer, { showToast } from '@/components/Toast';
 import PWAInstall from '@/components/PWAInstall';
 import { generateSessionTitle, quickTitle } from '@/lib/intelligence';
+import { trackApiCall } from '@/lib/apiStats';
 import { detectAppsForQuery, isAppEnabled } from '@/lib/connectedApps';
 import { extractAndStoreFacts, getRelevantMemories, getProactiveSuggestion, getMemorySummary } from '@/lib/crossSessionMemory';
 // canvas-confetti removed — canvas:false in webpack
