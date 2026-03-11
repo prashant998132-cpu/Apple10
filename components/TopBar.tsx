@@ -25,7 +25,7 @@ interface Props {
 export default function TopBar({ onCompress, onSessionSelect, currentSession, toolsRunning, puterReady }: Props) {
   const router = useRouter();
   const [showMenu, setShowMenu] = useState(false);
-  const [mounted,  setMounted]  = useState(false);
+  const [mounted, setMounted] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const btnRef  = useRef<HTMLButtonElement>(null);
 
@@ -33,96 +33,101 @@ export default function TopBar({ onCompress, onSessionSelect, currentSession, to
 
   useEffect(() => {
     if (!showMenu) return;
-    const h = (e: MouseEvent) => {
+    const close = (e: Event) => {
       const t = e.target as Node;
       if (!btnRef.current?.contains(t) && !menuRef.current?.contains(t)) {
         setShowMenu(false);
       }
     };
-    document.addEventListener('mousedown', h);
-    return () => document.removeEventListener('mousedown', h);
+    // Both mouse AND touch
+    document.addEventListener('mousedown', close);
+    document.addEventListener('touchstart', close);
+    return () => {
+      document.removeEventListener('mousedown', close);
+      document.removeEventListener('touchstart', close);
+    };
   }, [showMenu]);
 
   const navigate = (href: string) => {
     setShowMenu(false);
-    // Small delay so menu closes before navigation renders
-    setTimeout(() => router.push(href), 80);
+    router.push(href);
   };
 
   const menu = showMenu && mounted ? createPortal(
-    <div ref={menuRef} style={{
-      position: 'fixed', top: 50, right: 12, zIndex: 99999,
-      background: '#13161f',
-      border: '1px solid rgba(255,255,255,0.1)',
-      borderRadius: 16, overflow: 'hidden', minWidth: 200,
-      boxShadow: '0 16px 48px rgba(0,0,0,0.85)',
-      animation: 'menuFade 0.15s ease',
-    }}>
-      <style>{`@keyframes menuFade{from{opacity:0;transform:translateY(-8px) scale(0.97)}to{opacity:1;transform:translateY(0) scale(1)}}`}</style>
-
-      {PAGES.map((p, i) => (
-        <button key={p.href}
-          onClick={() => navigate(p.href)}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 12, width: '100%',
-            padding: '12px 16px', background: 'none', border: 'none',
-            borderBottom: i < PAGES.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none',
-            cursor: 'pointer', textAlign: 'left', transition: 'background 0.1s',
-          }}
-          onMouseEnter={e => ((e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.05)')}
-          onMouseLeave={e => ((e.currentTarget as HTMLElement).style.background = 'transparent')}>
-          <span style={{ fontSize: 16, width: 22, textAlign: 'center' }}>{p.icon}</span>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 13, fontWeight: 500, color: '#e2e8f0' }}>{p.label}</div>
-            <div style={{ fontSize: 10, color: '#6b7280', marginTop: 1 }}>{p.desc}</div>
+    <>
+      <style>{`
+        .jarvis-menu-item {
+          display:flex; align-items:center; gap:14px; width:100%;
+          padding:14px 16px; background:none; border:none;
+          border-bottom:1px solid rgba(255,255,255,0.05);
+          cursor:pointer; text-align:left;
+          -webkit-tap-highlight-color: rgba(59,130,246,0.15);
+          transition: background 0.1s;
+        }
+        .jarvis-menu-item:active { background: rgba(59,130,246,0.15) !important; }
+        .jarvis-menu-item:last-child { border-bottom: none; }
+        @keyframes menuFade {
+          from { opacity:0; transform:translateY(-8px) scale(0.97); }
+          to   { opacity:1; transform:translateY(0)    scale(1);    }
+        }
+      `}</style>
+      <div ref={menuRef} style={{
+        position:'fixed', top:50, right:12, zIndex:99999,
+        background:'#13161f',
+        border:'1px solid rgba(255,255,255,0.12)',
+        borderRadius:18, overflow:'hidden', minWidth:210,
+        boxShadow:'0 20px 60px rgba(0,0,0,0.9)',
+        animation:'menuFade 0.18s ease',
+      }}>
+        {PAGES.map(p => (
+          <button key={p.href} className="jarvis-menu-item"
+            onPointerDown={() => navigate(p.href)}>
+            <span style={{fontSize:20, width:28, textAlign:'center'}}>{p.icon}</span>
+            <div style={{flex:1}}>
+              <div style={{fontSize:14, fontWeight:600, color:'#e2e8f0'}}>{p.label}</div>
+              <div style={{fontSize:11, color:'#6b7280', marginTop:2}}>{p.desc}</div>
+            </div>
+          </button>
+        ))}
+        <div style={{height:1, background:'rgba(255,255,255,0.07)'}} />
+        <button className="jarvis-menu-item"
+          onPointerDown={() => { setShowMenu(false); onCompress(); }}>
+          <span style={{fontSize:20, width:28, textAlign:'center'}}>✂️</span>
+          <div style={{flex:1}}>
+            <div style={{fontSize:14, fontWeight:600, color:'#9ca3af'}}>Compress</div>
+            <div style={{fontSize:11, color:'#6b7280', marginTop:2}}>Context chhota karo</div>
           </div>
         </button>
-      ))}
-
-      {/* Compress */}
-      <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }} />
-      <button
-        onClick={() => { setShowMenu(false); onCompress(); }}
-        style={{
-          display: 'flex', alignItems: 'center', gap: 12, width: '100%',
-          padding: '11px 16px', background: 'none', border: 'none', cursor: 'pointer',
-        }}
-        onMouseEnter={e => ((e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.05)')}
-        onMouseLeave={e => ((e.currentTarget as HTMLElement).style.background = 'transparent')}>
-        <span style={{ fontSize: 16, width: 22, textAlign: 'center' }}>✂️</span>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 13, fontWeight: 500, color: '#9ca3af' }}>Compress</div>
-          <div style={{ fontSize: 10, color: '#6b7280', marginTop: 1 }}>Context chhota karo</div>
-        </div>
-      </button>
-    </div>,
+      </div>
+    </>,
     document.body
   ) : null;
 
   return (
     <>
       <div style={{
-        position: 'sticky', top: 0, zIndex: 30,
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '8px 12px',
-        background: 'linear-gradient(to bottom, #0a0b0f 65%, transparent)',
+        position:'sticky', top:0, zIndex:30,
+        display:'flex', alignItems:'center', justifyContent:'space-between',
+        padding:'8px 12px',
+        background:'linear-gradient(to bottom, #0a0b0f 70%, transparent)',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{display:'flex', alignItems:'center', gap:8}}>
           <ChatHistorySidebar onSelect={onSessionSelect} currentSession={currentSession} />
-          {toolsRunning && <span style={{ fontSize: 11, color: '#facc15' }}>🔧</span>}
-          {puterReady   && <span style={{ fontSize: 10, color: 'rgba(34,197,94,0.5)' }}>⚡</span>}
+          {toolsRunning && <span style={{fontSize:11, color:'#facc15'}}>🔧</span>}
+          {puterReady   && <span style={{fontSize:10, color:'rgba(34,197,94,0.5)'}}>⚡</span>}
           <PWAInstall />
         </div>
 
         <button ref={btnRef}
-          onClick={() => setShowMenu(s => !s)}
+          onPointerDown={e => { e.stopPropagation(); setShowMenu(s => !s); }}
           style={{
-            width: 34, height: 34, borderRadius: 10, cursor: 'pointer',
-            background: showMenu ? 'rgba(59,130,246,0.2)' : 'rgba(255,255,255,0.06)',
-            border: `1px solid ${showMenu ? 'rgba(59,130,246,0.5)' : 'rgba(255,255,255,0.1)'}`,
+            width:36, height:36, borderRadius:11, cursor:'pointer',
+            background: showMenu ? 'rgba(59,130,246,0.25)' : 'rgba(255,255,255,0.07)',
+            border:`1.5px solid ${showMenu ? 'rgba(59,130,246,0.6)' : 'rgba(255,255,255,0.12)'}`,
             color: showMenu ? '#60a5fa' : '#9ca3af',
-            fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            transition: 'all 0.15s',
+            fontSize:17, display:'flex', alignItems:'center', justifyContent:'center',
+            transition:'all 0.15s',
+            WebkitTapHighlightColor:'transparent',
           }}>
           ☰
         </button>
