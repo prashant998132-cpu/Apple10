@@ -21,6 +21,7 @@ import ToastContainer, { showToast } from '@/components/Toast';
 import PWAInstall from '@/components/PWAInstall';
 import { generateSessionTitle, quickTitle } from '@/lib/intelligence';
 import { trackApiCall } from '@/lib/apiStats';
+import { initAgents, setReminder, parseReminderIntent, queueAgentTask, showNotification } from '@/lib/agentManager';
 import { parseAndroidIntent, sendAndroidCommand, isAndroidTWA, MACRODROID_SETUP } from '@/lib/androidBridge';
 import { detectAppsForQuery, isAppEnabled } from '@/lib/connectedApps';
 import { extractAndStoreFacts, getRelevantMemories, getProactiveSuggestion, getMemorySummary } from '@/lib/crossSessionMemory';
@@ -108,8 +109,11 @@ export default function ChatInterface() {
         }).catch(() => {});
       }
 
-      // Service Worker
+      // Register SW + Init background agents
       if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
+      initAgents((msg) => setMessages(prev => [...prev, {
+        id: `agent_${Date.now()}`, role: 'assistant', ts: Date.now(), content: msg
+      }]));
 
       // Proactive engine
       const cleanup = startProactiveEngine((msg: string) => {
@@ -218,6 +222,21 @@ export default function ChatInterface() {
         content: loc.city
           ? `📍 **Location detected:** ${locStr}\n*Source: ${loc.source}*`
           : '📍 Location detect nahi ho payi. Browser mein location permission allow karo.'
+      }]);
+      setLoading(false); return;
+    }
+
+    // Reminder intent detection
+    const reminderIntent = parseReminderIntent(userText);
+    if (userText.toLowerCase().match(/remind|yaad dila|alarm|reminder/i) && reminderIntent) {
+      const ok = await setReminder(reminderIntent.task, reminderIntent.ms);
+      const mins = Math.round(reminderIntent.ms / 60000);
+      const unit = mins >= 60 ? `${Math.round(mins/60)} ghante` : `${mins} minute`;
+      setMessages(prev => [...prev, {
+        id: `r_${Date.now()}`, role: 'assistant', ts: Date.now(),
+        content: ok
+          ? `⏰ **Reminder set!** "${reminderIntent.task}" — ${unit} mein yaad dilaaunga! ✅`
+          : `❌ Reminder set nahi ho paya. Notifications allow karo.`
       }]);
       setLoading(false); return;
     }
