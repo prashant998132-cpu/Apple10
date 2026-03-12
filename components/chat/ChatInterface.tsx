@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { detectConversationMode, detectEmotion, detectThinkMode, getSystemPrompt, keywordFallback, PersonalityMode } from '@/lib/intelligence';
 import { addXP, updateStreak, getProfile, saveMemory, extractProfileInfo, logEmotion, trackTopic, getRelationshipName } from '@/lib/memory';
 import { getLocation, getCachedLocation, formatLocation } from '@/lib/location';
@@ -8,6 +9,7 @@ import { searchMemoryVectors, storeMemoryVector } from '@/lib/vectorMemory';
 import { syncMessageToCloud } from '@/lib/supabase';
 import { loadPuter, isPuterSignedIn, puterSpeak, puterGenerateImage } from '@/lib/puter';
 import { runAutonomousTools, queryNeedsTools, getMorningBriefing } from '@/lib/toolEngine';
+import { isAgentIntent, detectVoiceCommand, executeDeepLink } from '@/lib/voiceCommands';
 import { getDB } from '@/lib/db';
 import MessageBubble from './MessageBubble';
 import InputBar from './InputBar';
@@ -16,6 +18,7 @@ import ThinkBubble from './ThinkBubble';
 import CommandPalette from '@/components/CommandPalette';
 import ChatHistorySidebar from '@/components/ChatHistorySidebar';
 import TopBar from '@/components/TopBar';
+import JarvisOrb from '@/components/JarvisOrb';
 import CompressPopup from '@/components/CompressPopup';
 import ToastContainer, { showToast } from '@/components/Toast';
 import PWAInstall from '@/components/PWAInstall';
@@ -36,6 +39,7 @@ export interface Message {
 }
 
 export default function ChatInterface() {
+  const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -48,8 +52,43 @@ export default function ChatInterface() {
   const [puterReady, setPuterReady] = useState(false);
   const [sessionTitle, setSessionTitle] = useState('Naya Chat');
   const [toolsRunning, setToolsRunning] = useState(false);
+  const [wakeWordEnabled, setWakeWordEnabled] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+
+  // ── App Control Handler ──────────────────────────────────────
+  const execAppCommand = useCallback((action: string, payload: any) => {
+    switch (action) {
+      case 'navigate':
+        router.push(payload.path);
+        showToast(`Navigating to ${payload.path}`, '🚀', 'success');
+        break;
+      case 'clearChat':
+        setMessages([]);
+        showToast('Chat saaf ho gaya!', '🧹', 'success');
+        break;
+      case 'setTheme':
+        if (typeof document !== 'undefined') {
+          document.documentElement.setAttribute('data-theme', payload.theme);
+          try { localStorage.setItem('jarvis_theme', payload.theme); } catch {}
+        }
+        showToast(`${payload.theme === 'dark' ? '🌙' : '☀️'} ${payload.theme} mode on`, '✅', 'success');
+        break;
+      case 'setMode':
+        setThinkMode(payload.mode);
+        showToast(`${payload.mode} mode set`, '✅', 'success');
+        break;
+      case 'openSidebar':
+        document.getElementById('jarvis-sidebar')?.classList.remove('hidden');
+        break;
+      case 'scroll':
+        if (payload.to === 'top') window.scrollTo({ top: 0, behavior: 'smooth' });
+        else bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+        break;
+      default:
+        break;
+    }
+  }, [router]);
 
   useEffect(() => {
     (async () => {
@@ -229,6 +268,28 @@ export default function ChatInterface() {
       setLoading(false); return;
     }
 
+    // Handle /search command — real web search
+    if (userText.match(/^\/search\s+/i)) {
+      const query = userText.replace(/^\/search\s+/i, '').trim();
+      try {
+        const r = await fetch('/api/search', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query }) });
+        const d = await r.json();
+        let searchResult = '';
+        if (d.answer) {
+          searchResult = '🔍 **' + query + '**\n\n' + d.answer;
+        } else if (d.results?.length) {
+          const items = (d.results as any[]).slice(0,3).map(rs => '**' + rs.title + '**\n' + rs.snippet).join('\n\n');
+          searchResult = '🔍 **' + query + '**\n\n' + items;
+        } else {
+          searchResult = '🔍 ' + query + ' ke liye koi result nahi mila.';
+        }
+        setMessages(prev => [...prev, { id: 's_' + Date.now(), role: 'assistant' as const, ts: Date.now(), content: searchResult }]);
+      } catch {
+        setMessages(prev => [...prev, { id: 's_' + Date.now(), role: 'assistant' as const, ts: Date.now(), content: '🔍 Search fail ho gayi. Internet check karo.' }]);
+      }
+      setLoading(false); return;
+    }
+
     // Reminder intent detection
     const reminderIntent = parseReminderIntent(userText);
     if (userText.toLowerCase().match(/remind|yaad dila|alarm|reminder/i) && reminderIntent) {
@@ -241,6 +302,35 @@ export default function ChatInterface() {
           ? `⏰ **Reminder set!** "${reminderIntent.task}" — ${unit} mein yaad dilaaunga! ✅`
           : `❌ Reminder set nahi ho paya. Notifications allow karo.`
       }]);
+      setLoading(false); return;
+    }
+
+    // ── Voice/Text command detection ─────────────────────────
+    const voiceCmd = detectVoiceCommand(userText);
+    if (voiceCmd.type === 'deeplink' && voiceCmd.payload?.url) {
+      executeDeepLink(voiceCmd.payload.url);
+      setMessages(prev => [...prev, {
+        id: `cmd_${Date.now()}`, role: 'assistant', ts: Date.now(),
+        content: `🚀 **${voiceCmd.payload.name} khol raha hoon!**\n\n*Deep link: ${voiceCmd.payload.url.substring(0, 40)}...*`,
+      }]);
+      setLoading(false); return;
+    }
+    if (voiceCmd.type === 'appcontrol') {
+      execAppCommand(voiceCmd.action, voiceCmd.payload);
+      setMessages(prev => [...prev, {
+        id: `cmd_${Date.now()}`, role: 'assistant', ts: Date.now(),
+        content: `✅ ${voiceCmd.spoken || 'Done!'}`,
+      }]);
+      setLoading(false); return;
+    }
+
+    // ── Agent Intent Detection ────────────────────────────────
+    if (isAgentIntent(userText)) {
+      setMessages(prev => [...prev, {
+        id: `agent_${Date.now()}`, role: 'assistant', ts: Date.now(),
+        content: `🤖 **Agent mode activate!**\n\n"${userText}" — yeh ek multi-step task hai. Plan bana raha hoon...\n\n*Redirecting to Agent...*`,
+      }]);
+      setTimeout(() => router.push(`/agent?goal=${encodeURIComponent(userText)}`), 1500);
       setLoading(false); return;
     }
 
@@ -441,6 +531,11 @@ export default function ChatInterface() {
     speakText(clean);
   };
 
+  const handleVisionResult = (result: string) => {
+    const aiMsg: Message = { id: `v_${Date.now()}`, role: 'assistant', ts: Date.now(), content: result };
+    setMessages(prev => [...prev, aiMsg]);
+  };
+
   const loadSession = async (sid: string) => {
     setSessionId(sid);
     const db = getDB(); if (!db) return;
@@ -469,6 +564,8 @@ export default function ChatInterface() {
           currentSession={sessionId}
           toolsRunning={toolsRunning}
           puterReady={puterReady}
+          wakeWordEnabled={wakeWordEnabled}
+          onWakeWordToggle={() => setWakeWordEnabled(v => !v)}
         />
 
         <div className="max-w-2xl mx-auto px-4 py-2 space-y-5 pb-6">
@@ -530,6 +627,7 @@ export default function ChatInterface() {
       <div className="flex-shrink-0 px-4 pb-5 pt-1 bg-gradient-to-t from-[#0a0b0f] via-[#0a0b0f] to-transparent">
         <div className="max-w-2xl mx-auto">
           <InputBar
+            onVisionResult={handleVisionResult}
             value={input} onChange={setInput}
             onSend={sendMessage} loading={loading}
             onStop={() => abortRef.current?.abort()}
@@ -540,6 +638,8 @@ export default function ChatInterface() {
             onSessionSelect={loadSession}
             toolsRunning={toolsRunning}
             puterReady={puterReady}
+            onAppCommand={execAppCommand}
+            wakeWordEnabled={wakeWordEnabled}
           />
 
         </div>
