@@ -21,6 +21,7 @@ import ToastContainer, { showToast } from '@/components/Toast';
 import PWAInstall from '@/components/PWAInstall';
 import { generateSessionTitle, quickTitle } from '@/lib/intelligence';
 import { trackApiCall } from '@/lib/apiStats';
+import { isDuplicateAIRequest, trackVercelCall, getVercelUsage } from '@/lib/smartCache';
 import { initAgents, setReminder, parseReminderIntent, queueAgentTask, showNotification } from '@/lib/agentManager';
 import { parseAndroidIntent, sendAndroidCommand, isAndroidTWA, MACRODROID_SETUP } from '@/lib/androidBridge';
 import { detectAppsForQuery, isAppEnabled } from '@/lib/connectedApps';
@@ -169,6 +170,8 @@ export default function ChatInterface() {
   const sendMessage = useCallback(async (text?: string) => {
     const userText = (text || input).trim();
     if (!userText || loading) return;
+    // Prevent accidental double-fire (React strict mode / fast taps)
+    if (isDuplicateAIRequest(userText)) return;
     setInput('');
 
     const userMsg: Message = { id: `u_${Date.now()}`, role: 'user', content: userText, ts: Date.now() };
@@ -346,8 +349,7 @@ export default function ChatInterface() {
             setMessages(prev => prev.map(m => m.id === aiId ? { ...m, content: fullText } : m));
             if (db) await db.messages.add({ sessionId, role: 'assistant', content: fullText, ts: Date.now() });
             syncMessageToCloud({ session_id: sessionId, role: 'assistant', content: fullText, ts: Date.now() }).catch(() => {});
-            const { leveled, level } = await addXP(3);
-            if (leveled) // confetti removed
+            await addXP(3);
             setRelationship(getRelationshipName((await getProfile()).xp || 0));
             setLoading(false); return;
           }
@@ -518,8 +520,7 @@ export default function ChatInterface() {
             </div>
           )}
 
-          {!loading && messages.length > 1 && (
-          )}
+
 
           <div ref={bottomRef} />
         </div>
