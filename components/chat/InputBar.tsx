@@ -1,5 +1,6 @@
 'use client';
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
+import { detectVoiceCommand, containsWakeWord, executeDeepLink } from '@/lib/voiceCommands';
 
 interface Props {
   value: string; onChange: (v: string) => void;
@@ -8,6 +9,9 @@ interface Props {
   currentMode?: string; onModeChange?: (mode: string) => void;
   sessionId?: string; onSessionSelect?: (id: string) => void;
   toolsRunning?: boolean; puterReady?: boolean;
+  onVisionResult?: (result: string) => void;
+  onAppCommand?: (action: string, payload: any) => void; // App control callback
+  wakeWordEnabled?: boolean;
 }
 
 const MODES = [
@@ -25,12 +29,14 @@ const ATTACH = [
 
 export default function InputBar({
   value, onChange, onSend, loading, onStop, onCompress,
-  currentMode = 'auto', onModeChange,
+  currentMode = 'auto', onModeChange, onVisionResult, onAppCommand, wakeWordEnabled = false,
 }: Props) {
   const [listening, setListening] = useState(false);
+  const [wakeActive, setWakeActive] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const popupRef    = useRef<HTMLDivElement>(null);
+  const wakeRecRef  = useRef<any>(null);
 
   useEffect(() => {
     const el = textareaRef.current; if (!el) return;
@@ -47,20 +53,104 @@ export default function InputBar({
     return () => document.removeEventListener('mousedown', h);
   }, [showPopup]);
 
+  // ── Wake Word Listener ─────────────────────────────────────
+  const startWakeListener = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) return;
+    const rec = new SR();
+    rec.lang = 'en-IN';
+    rec.continuous = true;
+    rec.interimResults = true;
+    rec.onresult = (e: any) => {
+      const transcript = Array.from(e.results)
+        .map((r: any) => r[0].transcript)
+        .join(' ')
+        .toLowerCase();
+      if (containsWakeWord(transcript)) {
+        // Wake word detected!
+        if (navigator.vibrate) navigator.vibrate([50, 50, 100]);
+        rec.stop();
+        setWakeActive(false);
+        // Start main voice input after brief pause
+        setTimeout(() => startVoice(), 300);
+      }
+    };
+    rec.onend = () => {
+      // Auto-restart if wake word still enabled
+      if (wakeWordEnabled && wakeRecRef.current) {
+        try { rec.start(); } catch {}
+      }
+    };
+    rec.onerror = () => {
+      setWakeActive(false);
+      wakeRecRef.current = null;
+    };
+    wakeRecRef.current = rec;
+    setWakeActive(true);
+    try { rec.start(); } catch {}
+  }, [wakeWordEnabled]);
+
+  useEffect(() => {
+    if (wakeWordEnabled) {
+      startWakeListener();
+    } else {
+      if (wakeRecRef.current) {
+        try { wakeRecRef.current.stop(); } catch {}
+        wakeRecRef.current = null;
+      }
+      setWakeActive(false);
+    }
+    return () => {
+      if (wakeRecRef.current) {
+        try { wakeRecRef.current.stop(); } catch {}
+        wakeRecRef.current = null;
+      }
+    };
+  }, [wakeWordEnabled, startWakeListener]);
+
+  // ── Voice + Command Routing ────────────────────────────────
+  const handleVoiceResult = useCallback((transcript: string) => {
+    // Check for voice commands first
+    const cmd = detectVoiceCommand(transcript);
+    if (cmd.type === 'deeplink' && cmd.payload?.url) {
+      // Show in input then execute
+      onChange(transcript);
+      setTimeout(() => {
+        executeDeepLink(cmd.payload.url);
+        onChange('');
+      }, 500);
+      return;
+    }
+    if (cmd.type === 'appcontrol') {
+      onAppCommand?.(cmd.action, cmd.payload);
+      onChange('');
+      return;
+    }
+    // Normal: put in input and send
+    onChange(transcript);
+    setTimeout(() => {
+      if (transcript.trim()) onSend(transcript);
+    }, 300);
+  }, [onChange, onSend, onAppCommand]);
+
   const startVoice = () => {
     setShowPopup(false);
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (SR) {
-      // Browser native STT (Chrome/Edge)
       const rec = new SR();
       rec.lang = 'hi-IN'; rec.continuous = false; rec.interimResults = true;
       rec.onresult = (e: any) => onChange(Array.from(e.results).map((r: any) => r[0].transcript).join(''));
-      rec.onend = () => { setListening(false); setTimeout(() => { if (value.trim()) onSend(); }, 300); };
-      rec.onerror = () => { setListening(false); startWhisperSTT(); }; // fallback on error
+      rec.onend = () => {
+        setListening(false);
+        // Get final transcript from input value
+        const finalText = textareaRef.current?.value?.trim() || value.trim();
+        if (finalText) handleVoiceResult(finalText);
+      };
+      rec.onerror = () => { setListening(false); startWhisperSTT(); };
       rec.start(); setListening(true);
       if (navigator.vibrate) navigator.vibrate([30, 50, 30]);
     } else {
-      // Groq Whisper fallback — record audio then transcribe
       startWhisperSTT();
     }
   };
@@ -96,15 +186,60 @@ export default function InputBar({
     } catch { setListening(false); }
   };
 
+
+  const handleVisionFile = async (file: File) => {
+    if (!file) return;
+    onChange('[📷 Analyzing image...]');
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const base64 = (e.target?.result as string).split(',')[1];
+      const mimeType = file.type || 'image/jpeg';
+      const userPrompt = value.replace('[📷 Analyzing image...]', '').trim() || 'Yeh image mein kya hai? Detail mein batao.';
+      try {
+        const r = await fetch('/api/vision', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ imageBase64: base64, mimeType, prompt: userPrompt }),
+        });
+        const d = await r.json();
+        if (d.text) {
+          onChange('');
+          onVisionResult?.(`📷 **Image Analysis:**
+
+${d.text}`);
+        }
+      } catch {
+        onChange('');
+        onVisionResult?.('📷 Image analyze nahi ho payi. Dobara try karo.');
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   const currentModeObj = MODES.find(m => m.id === currentMode) || MODES[3];
   const hasText = value.trim().length > 0;
 
   return (
     <div className="relative w-full">
+      {/* Wake word indicator */}
+      {wakeActive && (
+        <div className="flex items-center gap-1.5 px-3 py-1 mb-1 rounded-xl text-xs"
+          style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)', color: '#818cf8' }}>
+          <span style={{ animation: 'pulse-glow 1.5s ease-in-out infinite' }}>🎙</span>
+          <span>Hey JARVIS sun raha hoon...</span>
+        </div>
+      )}
       {/* Hidden file inputs */}
       {ATTACH.filter(a => a.id !== 'voice').map(a => (
         <input key={a.id} id={`inp-${a.id}`} type="file" className="hidden" accept={a.accept}
-          {...(a.capture ? { capture: a.capture as any } : {})} />
+          {...(a.capture ? { capture: a.capture as any } : {})}
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file && (a.id === 'camera' || a.id === 'image') && onVisionResult) {
+              handleVisionFile(file);
+            }
+            e.target.value = '';
+          }} />
       ))}
 
       {/* ── POPUP (mode + attach) ── */}
