@@ -20,9 +20,11 @@ interface Props {
   currentSession: string;
   toolsRunning?: boolean;
   puterReady?: boolean;
+  wakeWordEnabled?: boolean;
+  onWakeWordToggle?: () => void;
 }
 
-export default function TopBar({ onCompress, onSessionSelect, currentSession, toolsRunning, puterReady }: Props) {
+export default function TopBar({ onCompress, onSessionSelect, currentSession, toolsRunning, puterReady, wakeWordEnabled, onWakeWordToggle }: Props) {
   const router = useRouter();
   const [showMenu, setShowMenu] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -116,6 +118,24 @@ export default function TopBar({ onCompress, onSessionSelect, currentSession, to
           {toolsRunning && <span style={{fontSize:11, color:'#facc15'}}>🔧</span>}
           {puterReady   && <span style={{fontSize:10, color:'rgba(34,197,94,0.5)'}}>⚡</span>}
           <PWAInstall />
+          {/* Wake Word Toggle */}
+          {onWakeWordToggle && (
+            <button
+              onPointerDown={e => { e.stopPropagation(); onWakeWordToggle(); }}
+              title={wakeWordEnabled ? '"Hey JARVIS" active' : 'Wake word off'}
+              style={{
+                width: 32, height: 32, borderRadius: 9, cursor: 'pointer',
+                background: wakeWordEnabled ? 'rgba(99,102,241,0.25)' : 'rgba(255,255,255,0.05)',
+                border: `1.5px solid ${wakeWordEnabled ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.1)'}`,
+                color: wakeWordEnabled ? '#818cf8' : '#4b5563',
+                fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'all 0.2s',
+                animation: wakeWordEnabled ? 'pulse-glow 2s ease-in-out infinite' : 'none',
+                WebkitTapHighlightColor: 'transparent',
+              }}>
+              🎙
+            </button>
+          )}
         </div>
 
         <button ref={btnRef}
