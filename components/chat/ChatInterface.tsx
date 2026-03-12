@@ -64,7 +64,7 @@ export default function ChatInterface() {
       const greet = hour < 12 ? '🌅 Subah' : hour < 17 ? '☀️ Dopahar' : hour < 21 ? '🌆 Shaam' : '🌙 Raat';
       const rel = getRelationshipName(p.xp || 0);
       const twaMode = isAndroidTWA() ? '\n\n📱 *Android Native Mode — MacroDroid bridge active*' : '';
-      const welcomeMsg = `**Namaste Jons Bhai! ${greet} mubarak.** ${rel.icon}\n\n${p.name ? `${p.name}, aaj kya plan hai?` : 'Kya help chahiye aaj?'}\n\n💡 Try karo: \`/weather\` \`/news\` \`/crypto\` \`/joke\` \`/image [kuch bhi]\`\n\n*Tip: Ctrl+K = command palette | Swipe right = like | Swipe left = copy*${twaMode}`;
+      const welcomeMsg = `**Namaste Jons Bhai! ${greet} mubarak.** ${rel.icon}\n\n${p.name ? `${p.name}, aaj kya plan hai?` : 'Kya help chahiye aaj?'}${twaMode}`;
       setMessages([{ id: 'welcome', role: 'assistant', ts: Date.now(), content: welcomeMsg }]);
 
       // Proactive suggestion from cross-session memory
