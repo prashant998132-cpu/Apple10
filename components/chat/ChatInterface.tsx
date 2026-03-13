@@ -1,6 +1,5 @@
 'use client';
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
 import { detectConversationMode, detectEmotion, detectThinkMode, getSystemPrompt, keywordFallback, PersonalityMode } from '@/lib/intelligence';
 import { addXP, updateStreak, getProfile, saveMemory, extractProfileInfo, logEmotion, trackTopic, getRelationshipName } from '@/lib/memory';
 import { getLocation, getCachedLocation, formatLocation } from '@/lib/location';
@@ -39,7 +38,6 @@ export interface Message {
 }
 
 export default function ChatInterface() {
-  const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -60,7 +58,7 @@ export default function ChatInterface() {
   const execAppCommand = useCallback((action: string, payload: any) => {
     switch (action) {
       case 'navigate':
-        router.push(payload.path);
+        if (typeof window !== 'undefined') window.location.href = payload.path;
         showToast(`Navigating to ${payload.path}`, '🚀', 'success');
         break;
       case 'clearChat':
@@ -88,7 +86,7 @@ export default function ChatInterface() {
       default:
         break;
     }
-  }, [router]);
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -326,12 +324,12 @@ export default function ChatInterface() {
 
     // ── Agent Intent Detection ────────────────────────────────
     if (isAgentIntent(userText)) {
+      // No /agent page — do it in-chat with step breakdown
+      const agentMsg = `🤖 **Agent Mode — Multi-Step Task**\n\n"${userText}"\n\n_Step 1/3: Analyzing task..._\n\nIs task ko main automatically steps mein todkar execute karunga. Abhi AI se full plan le raha hoon...`;
       setMessages(prev => [...prev, {
-        id: `agent_${Date.now()}`, role: 'assistant', ts: Date.now(),
-        content: `🤖 **Agent mode activate!**\n\n"${userText}" — yeh ek multi-step task hai. Plan bana raha hoon...\n\n*Redirecting to Agent...*`,
+        id: `agent_${Date.now()}`, role: 'assistant', ts: Date.now(), content: agentMsg,
       }]);
-      setTimeout(() => router.push(`/agent?goal=${encodeURIComponent(userText)}`), 1500);
-      setLoading(false); return;
+      // Fall through to normal AI call — system prompt will handle it
     }
 
     // Android automation intent detection
