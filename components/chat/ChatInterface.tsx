@@ -410,9 +410,9 @@ export default function ChatInterface() {
 
     // ── AI GENERATION (with tool context) ───────────────────
     const mode = detectThinkMode(userText, thinkMode);
-    const profile = await getProfile();
-    const vectorResults = await searchMemoryVectors(userText, 5);
-    const crossMems = getRelevantMemories(userText, 4);
+    const profile = await getProfile(); // single call — cached below
+    const vectorResults = await searchMemoryVectors(userText, 8);  // was 5
+    const crossMems = getRelevantMemories(userText, 6);             // was 4
     const memTexts = [...new Set([...vectorResults.map(r => r.text), ...crossMems])];
     const system = getSystemPrompt(personality, profile, memTexts, emotion, new Date().getHours(), toolResultTexts);
     const histMsgs = messages.slice(-12).map(m => ({ role: m.role, content: m.content }));
@@ -438,7 +438,7 @@ export default function ChatInterface() {
             if (db) await db.messages.add({ sessionId, role: 'assistant', content: fullText, ts: Date.now() });
             syncMessageToCloud({ session_id: sessionId, role: 'assistant', content: fullText, ts: Date.now() }).catch(() => {});
             await addXP(3);
-            setRelationship(getRelationshipName((await getProfile()).xp || 0));
+            setRelationship(getRelationshipName((profile.xp || 0) + 3));
             setLoading(false); return;
           }
         }
@@ -497,7 +497,9 @@ export default function ChatInterface() {
         showToast(`Level Up! Ab Level ${level} ho gaye! 🏆`, '🎉', 'success');
         setMessages(prev => [...prev, { id: `lv_${Date.now()}`, role: 'assistant', ts: Date.now(), content: `🏆 **Level Up! Jons Bhai ab Level ${level} hai!** 🎉` }]);
       }
-      setRelationship(getRelationshipName((await getProfile()).xp || 0));
+      // Use already-fetched profile — no extra getProfile() call
+      const updatedXp = (profile.xp || 0) + 2;
+      setRelationship(getRelationshipName(updatedXp));
 
     } catch (e: any) {
       if (e.name === 'AbortError') { setLoading(false); return; }
