@@ -25,7 +25,7 @@ import { generateSessionTitle, quickTitle } from '@/lib/intelligence';
 import { trackApiCall } from '@/lib/apiStats';
 import { isDuplicateAIRequest, trackVercelCall, getVercelUsage } from '@/lib/smartCache';
 import { initAgents, setReminder, parseReminderIntent, queueAgentTask, showNotification } from '@/lib/agentManager';
-import { parseAndroidIntent, sendAndroidCommand, isAndroid, MACRODROID_SETUP } from '@/lib/androidBridge';
+import { parseAndroidIntent, sendAndroidCommand, isAndroid, actionToHuman, MACRODROID_SETUP } from '@/lib/androidBridge';
 import { detectAppsForQuery, isAppEnabled } from '@/lib/connectedApps';
 import { extractAndStoreFacts, getRelevantMemories, getProactiveSuggestion, getMemorySummary } from '@/lib/crossSessionMemory';
 import {
@@ -470,13 +470,14 @@ export default function ChatInterface() {
     const androidCmd = parseAndroidIntent(userText);
     if (androidCmd) {
       const result = await sendAndroidCommand(androidCmd);
+      const human = actionToHuman(androidCmd.action, String(androidCmd.value || ''));
       const responseMsg = result.ok
-        ? `✅ Done! ${result.result || androidCmd.action} executed.`
-        : `❌ ${result.error}\n\n${result.error?.includes('MacroDroid') ? MACRODROID_SETUP : ''}`;
+        ? human
+        : `❌ ${result.error}\n\n*MacroDroid setup: apple10.vercel.app/macrodroid*`;
       setMessages(prev => [...prev, {
         id: `a_${Date.now()}`, role: 'assistant', ts: Date.now(), content: responseMsg
       }]);
-      setLoading(false); return;
+      setLoading(false); clearBadge(); return;
     }
 
     // Auto-detect connected apps for this query
