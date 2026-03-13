@@ -25,7 +25,7 @@ import { generateSessionTitle, quickTitle } from '@/lib/intelligence';
 import { trackApiCall } from '@/lib/apiStats';
 import { isDuplicateAIRequest, trackVercelCall, getVercelUsage } from '@/lib/smartCache';
 import { initAgents, setReminder, parseReminderIntent, queueAgentTask, showNotification } from '@/lib/agentManager';
-import { parseAndroidIntent, sendAndroidCommand, isAndroidTWA, MACRODROID_SETUP } from '@/lib/androidBridge';
+import { parseAndroidIntent, sendAndroidCommand, isAndroid, MACRODROID_SETUP } from '@/lib/androidBridge';
 import { detectAppsForQuery, isAppEnabled } from '@/lib/connectedApps';
 import { extractAndStoreFacts, getRelevantMemories, getProactiveSuggestion, getMemorySummary } from '@/lib/crossSessionMemory';
 // canvas-confetti removed — canvas:false in webpack
