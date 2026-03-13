@@ -58,8 +58,7 @@ export function loadPuter(): Promise<boolean> {
     s.onload = () => {
       _sdkLoaded = true; _sdkLoading = false;
       _loadCallbacks.forEach(cb => cb(true));
-      // Init JARVIS folders
-      initPuterFolders();
+      // No auto-init — avoid login popup
     };
     s.onerror = () => {
       _sdkLoading = false;
@@ -87,7 +86,7 @@ export async function puterSignIn(): Promise<string | null> {
   const p = window.puter; if (!p) return null;
   try {
     const signedIn = await p.auth.isSignedIn();
-    if (!signedIn) await p.auth.signIn();
+    if (!signedIn) return null; // Never call signIn() — no popup ever
     const user = await p.auth.getUser();
     return user.username;
   } catch { return null; }
@@ -175,7 +174,7 @@ export async function puterUpload(file: File | Blob, type: keyof typeof FOLDERS,
   const p = window.puter; if (!p) return null;
   try {
     const signedIn = await p.auth.isSignedIn();
-    if (!signedIn) { await p.auth.signIn(); }
+    if (!signedIn) return null; // Never call signIn() — no popup ever
     const folder = FOLDERS[type] || 'jarvis-pro/photos';
     const path = `${folder}/${Date.now()}_${name}`;
     await p.fs.write(path, file);
