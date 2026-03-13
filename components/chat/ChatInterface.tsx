@@ -415,7 +415,7 @@ export default function ChatInterface() {
     const crossMems = getRelevantMemories(userText, 6);             // was 4
     const memTexts = [...new Set([...vectorResults.map(r => r.text), ...crossMems])];
     const system = getSystemPrompt(personality, profile, memTexts, emotion, new Date().getHours(), toolResultTexts);
-    const histMsgs = messages.slice(-12).map(m => ({ role: m.role, content: m.content }));
+    const histMsgs = messages.slice(-20).map(m => ({ role: m.role, content: m.content }));
 
     const aiId = `a_${Date.now()}`;
     setMessages(prev => [...prev, { id: aiId, role: 'assistant', content: '', ts: Date.now(), mode, toolsUsed: toolsUsedNames }]);
