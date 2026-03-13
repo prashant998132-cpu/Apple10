@@ -1,7 +1,7 @@
 {
   "name": "JARVIS AI Assistant",
   "short_name": "JARVIS",
-  "description": "Your Personal AI Assistant — Powered by Groq + Gemini",
+  "description": "Your Personal AI — Groq + Gemini + Phone Control",
   "start_url": "/?source=pwa",
   "scope": "/",
   "display": "standalone",
@@ -22,17 +22,40 @@
     { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
   ],
   "shortcuts": [
-    { "name": "New Chat",    "url": "/?new=1",    "description": "Start a new chat",     "icons": [{"src": "/icons/icon-96.png", "sizes": "96x96"}] },
-    { "name": "Weather",     "url": "/?cmd=weather", "description": "Check weather",    "icons": [{"src": "/icons/icon-96.png", "sizes": "96x96"}] },
-    { "name": "Image Gen",   "url": "/?cmd=image",   "description": "Generate an image","icons": [{"src": "/icons/icon-96.png", "sizes": "96x96"}] }
+    { "name": "New Chat",   "url": "/?new=1",       "description": "Start a new conversation", "icons": [{"src": "/icons/icon-96.png", "sizes": "96x96"}] },
+    { "name": "Voice Mode", "url": "/?voice=1",     "description": "Start voice assistant",    "icons": [{"src": "/icons/icon-96.png", "sizes": "96x96"}] },
+    { "name": "Weather",    "url": "/?cmd=weather", "description": "Check weather",            "icons": [{"src": "/icons/icon-96.png", "sizes": "96x96"}] },
+    { "name": "Image Gen",  "url": "/?cmd=image",   "description": "Generate an image",        "icons": [{"src": "/icons/icon-96.png", "sizes": "96x96"}] }
   ],
   "screenshots": [
     { "src": "/icons/screenshot-1.png", "sizes": "390x844", "type": "image/png", "form_factor": "narrow", "label": "JARVIS Chat Interface" }
   ],
-  "related_applications": [],
   "share_target": {
     "action": "/",
-    "method": "GET",
-    "params": { "text": "shared_text", "title": "shared_title", "url": "shared_url" }
-  }
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "shared_title",
+      "text": "shared_text",
+      "url": "shared_url",
+      "files": [{ "name": "shared_file", "accept": ["image/*", "application/pdf", "text/*", "audio/*"] }]
+    }
+  },
+  "file_handlers": [
+    {
+      "action": "/",
+      "accept": {
+        "image/*": [".jpg", ".jpeg", ".png", ".gif", ".webp"],
+        "application/pdf": [".pdf"],
+        "text/*": [".txt", ".md"],
+        "audio/*": [".mp3", ".m4a", ".wav"]
+      }
+    }
+  ],
+  "protocol_handlers": [
+    { "protocol": "web+jarvis", "url": "/?cmd=%s" }
+  ],
+  "launch_handler": { "client_mode": "focus-existing" },
+  "handle_links": "preferred",
+  "related_applications": []
 }
