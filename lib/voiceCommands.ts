@@ -146,7 +146,7 @@ export function detectToolTrigger(text: string): string | null {
 
 // Wake word detection
 export function containsWakeWord(text: string): boolean {
-  return /hey\s*jarvis|hi\s*jarvis|jarvis\s*(sun|bhai|yaar|sunn)/i.test(text);
+  return /hey\s*jarvis|hi\s*jarvis|jarvis\s*(sun|bhai|yaar|sunn|hello|haan)|aye\s*jarvis|सुनो\s*जार्विस|जार्विस/i.test(text);
 }
 
 // Execute deep link (Android)
