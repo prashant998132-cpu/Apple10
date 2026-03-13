@@ -10,8 +10,9 @@ interface Props {
   sessionId?: string; onSessionSelect?: (id: string) => void;
   toolsRunning?: boolean; puterReady?: boolean;
   onVisionResult?: (result: string) => void;
-  onAppCommand?: (action: string, payload: any) => void; // App control callback
+  onAppCommand?: (action: string, payload: any) => void;
   wakeWordEnabled?: boolean;
+  voiceLoopActive?: boolean; // voice-to-voice mode — auto re-trigger after AI response
 }
 
 const MODES = [
@@ -136,12 +137,13 @@ export default function InputBar({
       rec.onresult = (e: any) => onChange(Array.from(e.results).map((r: any) => r[0].transcript).join(''));
       rec.onend = () => {
         setListening(false);
-        // Get final transcript from input value
         const finalText = textareaRef.current?.value?.trim() || value.trim();
         if (finalText) handleVoiceResult(finalText);
       };
       rec.onerror = () => { setListening(false); startWhisperSTT(); };
       rec.start(); setListening(true);
+      // Keep screen on during voice
+      if ('wakeLock' in navigator) (navigator as any).wakeLock.request('screen').catch(() => {});
       if (navigator.vibrate) navigator.vibrate([30, 50, 30]);
     } else {
       startWhisperSTT();
