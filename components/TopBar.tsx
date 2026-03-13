@@ -11,7 +11,6 @@ const PAGES = [
   { href: '/vault',       icon: '🗄️', label: 'Vault',    desc: 'Media & notes' },
   { href: '/study',       icon: '📚', label: 'Study',     desc: 'MCQs & flashcards' },
   { href: '/target',      icon: '🎯', label: 'Goals',     desc: 'Track targets' },
-  { href: '/macrodroid',  icon: '📱', label: 'MacroDroid', desc: 'Phone automation' },
   { href: '/settings',    icon: '⚙️', label: 'Settings',  desc: 'Apps & config' },
 ];
 
