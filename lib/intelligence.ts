@@ -71,12 +71,13 @@ export function getSystemPrompt(
     bored: 'User bored hai — engaging, interesting content de.',
   };
 
-  let sys = `${p}\n\nUser ka naam: ${name}. Abhi ${timeCtx} hai, IST (Rewa, MP, India).`;
+  const locationStr = profile?.location ? `, ${profile.location}` : '';
+  let sys = `${p}\n\nUser ka naam: ${name}. Abhi ${timeCtx} hai, IST${locationStr}.`;
 
   if (emotion !== 'neutral' && emotionCtx[emotion]) sys += `\n\nContext: ${emotionCtx[emotion]}`;
 
   if (memories.length > 0) {
-    sys += `\n\n**User ke baare mein yaad hai:**\n${memories.slice(0, 5).map(m => `- ${m}`).join('\n')}`;
+    sys += `\n\n**User ke baare mein yaad hai:**\n${memories.slice(0, 10).map(m => `- ${m}`).join('\n')}`;
   }
 
   if (toolResults && toolResults.length > 0) {
