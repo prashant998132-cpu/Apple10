@@ -59,7 +59,7 @@ export default function InputBar({
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SR) return;
     const rec = new SR();
-    rec.lang = 'en-IN';
+    rec.lang = 'hi-IN'; // Hindi — also catches "hey jarvis" in Hindi accent
     rec.continuous = true;
     rec.interimResults = true;
     rec.onresult = (e: any) => {
