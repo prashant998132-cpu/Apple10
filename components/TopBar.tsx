@@ -6,12 +6,13 @@ import ChatHistorySidebar from './ChatHistorySidebar';
 import PWAInstall from './PWAInstall';
 
 const PAGES = [
-  { href: '/',         icon: '💬', label: 'Chat',     desc: 'Back to chat' },
-  { href: '/tools',    icon: '🧰', label: 'Tools',    desc: '30+ calculators' },
-  { href: '/vault',    icon: '🗄️', label: 'Vault',   desc: 'Media & notes' },
-  { href: '/study',    icon: '📚', label: 'Study',    desc: 'MCQs & flashcards' },
-  { href: '/target',   icon: '🎯', label: 'Goals',    desc: 'Track targets' },
-  { href: '/settings', icon: '⚙️', label: 'Settings', desc: 'Apps & config' },
+  { href: '/',            icon: '💬', label: 'Chat',      desc: 'Back to chat' },
+  { href: '/tools',       icon: '🧰', label: 'Tools',     desc: '30+ calculators' },
+  { href: '/vault',       icon: '🗄️', label: 'Vault',    desc: 'Media & notes' },
+  { href: '/study',       icon: '📚', label: 'Study',     desc: 'MCQs & flashcards' },
+  { href: '/target',      icon: '🎯', label: 'Goals',     desc: 'Track targets' },
+  { href: '/macrodroid',  icon: '📱', label: 'MacroDroid', desc: 'Phone automation' },
+  { href: '/settings',    icon: '⚙️', label: 'Settings',  desc: 'Apps & config' },
 ];
 
 interface Props {
