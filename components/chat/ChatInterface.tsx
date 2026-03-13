@@ -6,7 +6,6 @@ import { getLocation, getCachedLocation, formatLocation } from '@/lib/location';
 import { startProactiveEngine, speakText } from '@/lib/proactive';
 import { searchMemoryVectors, storeMemoryVector } from '@/lib/vectorMemory';
 import { syncMessageToCloud } from '@/lib/supabase';
-import { loadPuter, isPuterSignedIn, puterSpeak, puterGenerateImage } from '@/lib/puter';
 import { runAutonomousTools, queryNeedsTools, getMorningBriefing } from '@/lib/toolEngine';
 import { isAgentIntent, detectVoiceCommand, executeDeepLink } from '@/lib/voiceCommands';
 import { getDB } from '@/lib/db';
@@ -25,7 +24,6 @@ import { generateSessionTitle, quickTitle } from '@/lib/intelligence';
 import { trackApiCall } from '@/lib/apiStats';
 import { isDuplicateAIRequest, trackVercelCall, getVercelUsage } from '@/lib/smartCache';
 import { initAgents, setReminder, parseReminderIntent, queueAgentTask, showNotification } from '@/lib/agentManager';
-import { parseAndroidIntent, sendAndroidCommand, isAndroid, actionToHuman, MACRODROID_SETUP } from '@/lib/androidBridge';
 import { detectAppsForQuery, isAppEnabled } from '@/lib/connectedApps';
 import { extractAndStoreFacts, getRelevantMemories, getProactiveSuggestion, getMemorySummary } from '@/lib/crossSessionMemory';
 import {
@@ -54,7 +52,7 @@ export default function ChatInterface() {
   const [showCompress, setShowCompress] = useState(false);
   const [relationship, setRelationship] = useState({ name: 'Stranger', icon: '🌱', next: 100 });
   const [pinnedMsgs, setPinnedMsgs] = useState<string[]>([]);
-  const [puterReady, setPuterReady] = useState(false);
+  const puterReady = false; // Puter login removed
   const [sessionTitle, setSessionTitle] = useState('Naya Chat');
   const [toolsRunning, setToolsRunning] = useState(false);
   const [wakeWordEnabled, setWakeWordEnabled] = useState(false);
@@ -107,12 +105,11 @@ export default function ChatInterface() {
       setPersonality(p.personality as PersonalityMode || 'default');
       setRelationship(getRelationshipName(p.xp || 0));
 
-      // Welcome + morning briefing
+      // Welcome message
       const hour = new Date().getHours();
       const greet = hour < 12 ? '🌅 Subah' : hour < 17 ? '☀️ Dopahar' : hour < 21 ? '🌆 Shaam' : '🌙 Raat';
       const rel = getRelationshipName(p.xp || 0);
-      const twaMode = isAndroid() ? '\n\n📱 *Android — MacroDroid bridge active*' : '';
-      const welcomeMsg = `**Namaste Jons Bhai! ${greet} mubarak.** ${rel.icon}\n\n${p.name ? `${p.name}, aaj kya plan hai?` : 'Kya help chahiye aaj?'}${twaMode}`;
+      const welcomeMsg = `**Namaste Jons Bhai! ${greet} mubarak.** ${rel.icon}\n\n${p.name ? `${p.name}, aaj kya plan hai?` : 'Kya help chahiye aaj?'}`;
       setMessages([{ id: 'welcome', role: 'assistant', ts: Date.now(), content: welcomeMsg }]);
 
       // Proactive suggestion from cross-session memory
@@ -140,9 +137,6 @@ export default function ChatInterface() {
           }, 1500);
         }
       }
-
-      // Puter SDK
-      loadPuter().then(ok => setPuterReady(ok));
 
       // Fetch real location silently
       const cachedLoc = getCachedLocation();
@@ -292,15 +286,8 @@ export default function ChatInterface() {
     return out;
   };
 
-  // Image generation with fallback
+  // Image generation — Pollinations FLUX (free, no login)
   const generateImage = async (prompt: string): Promise<{ url: string; source: string }> => {
-    if (puterReady) {
-      const signed = await isPuterSignedIn();
-      if (signed) {
-        const url = await puterGenerateImage(prompt);
-        if (url) return { url, source: 'DALL-E 3 (Puter)' };
-      }
-    }
     const r = await fetch('/api/image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt }) });
     const d = await r.json();
     return { url: d.url, source: 'Pollinations FLUX' };
@@ -464,20 +451,6 @@ export default function ChatInterface() {
         id: `agent_${Date.now()}`, role: 'assistant', ts: Date.now(), content: agentMsg,
       }]);
       // Fall through to normal AI call — system prompt will handle it
-    }
-
-    // Android automation intent detection
-    const androidCmd = parseAndroidIntent(userText);
-    if (androidCmd) {
-      const result = await sendAndroidCommand(androidCmd);
-      const human = actionToHuman(androidCmd.action, String(androidCmd.value || ''));
-      const responseMsg = result.ok
-        ? human
-        : `❌ ${result.error}\n\n*MacroDroid setup: apple10.vercel.app/macrodroid*`;
-      setMessages(prev => [...prev, {
-        id: `a_${Date.now()}`, role: 'assistant', ts: Date.now(), content: responseMsg
-      }]);
-      setLoading(false); clearBadge(); return;
     }
 
     // Auto-detect connected apps for this query
@@ -645,7 +618,7 @@ export default function ChatInterface() {
     }
     setLoading(false);
     clearBadge();
-  }, [input, loading, messages, thinkMode, personality, sessionId, puterReady, networkQuality]);
+  }, [input, loading, messages, thinkMode, personality, sessionId, networkQuality]);
 
   const togglePin = (id: string) => {
     setMessages(prev => prev.map(m => m.id === id ? { ...m, pinned: !m.pinned } : m));
@@ -661,7 +634,6 @@ export default function ChatInterface() {
 
   const handleSpeak = async (text: string) => {
     const clean = text.replace(/[#*`>\[\]]/g, '').slice(0, 400);
-    if (puterReady) { const ok = await puterSpeak(clean); if (ok) return; }
     try {
       const r = await fetch('/api/tts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: clean }) });
       const d = await r.json();
