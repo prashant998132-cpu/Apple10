@@ -286,8 +286,21 @@ export default function ChatInterface() {
     return out;
   };
 
-  // Image generation — Pollinations FLUX (free, no login)
+  // Image generation — Puter DALL-E 3 (if signed in) → Pollinations FLUX fallback
   const generateImage = async (prompt: string): Promise<{ url: string; source: string }> => {
+    // Try Puter first — lazy load, never triggers login popup
+    try {
+      const { loadPuter, isPuterSignedIn, puterGenerateImage } = await import('@/lib/puter');
+      const loaded = await loadPuter();
+      if (loaded) {
+        const signedIn = await isPuterSignedIn();
+        if (signedIn) {
+          const url = await puterGenerateImage(prompt);
+          if (url) return { url, source: 'DALL-E 3 (Puter)' };
+        }
+      }
+    } catch {}
+    // Fallback — Pollinations FLUX (always works, no login)
     const r = await fetch('/api/image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt }) });
     const d = await r.json();
     return { url: d.url, source: 'Pollinations FLUX' };
@@ -634,6 +647,16 @@ export default function ChatInterface() {
 
   const handleSpeak = async (text: string) => {
     const clean = text.replace(/[#*`>\[\]]/g, '').slice(0, 400);
+    // Try Puter TTS first (high quality) — lazy, no login popup
+    try {
+      const { loadPuter, isPuterSignedIn, puterSpeak } = await import('@/lib/puter');
+      const loaded = await loadPuter();
+      if (loaded && await isPuterSignedIn()) {
+        const ok = await puterSpeak(clean);
+        if (ok) return;
+      }
+    } catch {}
+    // Fallback TTS
     try {
       const r = await fetch('/api/tts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: clean }) });
       const d = await r.json();
