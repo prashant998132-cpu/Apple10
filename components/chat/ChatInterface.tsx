@@ -25,6 +25,7 @@ import { trackApiCall } from '@/lib/apiStats';
 import { isDuplicateAIRequest, trackVercelCall, getVercelUsage } from '@/lib/smartCache';
 import { initAgents, setReminder, parseReminderIntent, queueAgentTask, showNotification } from '@/lib/agentManager';
 import { detectAppsForQuery, isAppEnabled } from '@/lib/connectedApps';
+import { parseTermuxIntent, sendTermuxCommand, termuxActionToHuman, TERMUX_SETUP_SCRIPT } from '@/lib/termuxBridge';
 import { extractAndStoreFacts, getRelevantMemories, getProactiveSuggestion, getMemorySummary } from '@/lib/crossSessionMemory';
 import {
   getBattery, watchBattery, formatBattery, watchNetwork, getNetworkQuality, networkQualityToMode,
@@ -464,6 +465,19 @@ export default function ChatInterface() {
         id: `agent_${Date.now()}`, role: 'assistant', ts: Date.now(), content: agentMsg,
       }]);
       // Fall through to normal AI call — system prompt will handle it
+    }
+
+    // ── Termux Phone Control ─────────────────────────────────
+    const termuxIntent = parseTermuxIntent(userText);
+    if (termuxIntent) {
+      const ok = await sendTermuxCommand(termuxIntent.action, termuxIntent.value);
+      const msg = ok
+        ? termuxActionToHuman(termuxIntent.action, termuxIntent.value)
+        : `⚠️ Termux connected nahi hai.\n\n**Setup (sirf ek baar):**\n1. F-Droid se **Termux** install karo\n2. F-Droid se **Termux:API** install karo\n3. Termux open karo aur yeh run karo:\n\`\`\`\npkg update -y && pkg install termux-api curl -y\n\`\`\`\n4. Phir yeh listener run karo:\n\`\`\`\nwhile true; do MSG=$(curl -s --max-time 60 "https://ntfy.sh/jarvis-pranshu-2026/raw"); if [ -n "$MSG" ]; then eval "$MSG"; fi; sleep 1; done\n\`\`\`\nBas — JARVIS ab phone control karega!`;
+      setMessages(prev => [...prev, {
+        id: `tx_${Date.now()}`, role: 'assistant', ts: Date.now(), content: msg
+      }]);
+      setLoading(false); clearBadge(); return;
     }
 
     // Auto-detect connected apps for this query
