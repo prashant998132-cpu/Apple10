@@ -28,6 +28,13 @@ import { initAgents, setReminder, parseReminderIntent, queueAgentTask, showNotif
 import { parseAndroidIntent, sendAndroidCommand, isAndroid, MACRODROID_SETUP } from '@/lib/androidBridge';
 import { detectAppsForQuery, isAppEnabled } from '@/lib/connectedApps';
 import { extractAndStoreFacts, getRelevantMemories, getProactiveSuggestion, getMemorySummary } from '@/lib/crossSessionMemory';
+import {
+  getBattery, watchBattery, formatBattery, watchNetwork, getNetworkQuality, networkQualityToMode,
+  requestWakeLock, releaseWakeLock, isWakeLockActive, setupWakeLockPersist,
+  setBadge, clearBadge, setupMediaSession, clearMediaSession, setMediaSessionPlayback,
+  getDeviceCapabilities, VIBRATE, readClipboard, shareText,
+  isContactPickerSupported, pickContactForCall,
+} from '@/lib/nativeAPIs';
 // canvas-confetti removed — canvas:false in webpack
 
 export interface Message {
@@ -51,6 +58,10 @@ export default function ChatInterface() {
   const [sessionTitle, setSessionTitle] = useState('Naya Chat');
   const [toolsRunning, setToolsRunning] = useState(false);
   const [wakeWordEnabled, setWakeWordEnabled] = useState(false);
+  // Native API states
+  const [batteryInfo, setBatteryInfo] = useState<string>('');
+  const [networkQuality, setNetworkQuality] = useState<'fast'|'medium'|'slow'|'offline'>('fast');
+  const [voiceLoopActive, setVoiceLoopActive] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -100,7 +111,7 @@ export default function ChatInterface() {
       const hour = new Date().getHours();
       const greet = hour < 12 ? '🌅 Subah' : hour < 17 ? '☀️ Dopahar' : hour < 21 ? '🌆 Shaam' : '🌙 Raat';
       const rel = getRelationshipName(p.xp || 0);
-      const twaMode = isAndroidTWA() ? '\n\n📱 *Android Native Mode — MacroDroid bridge active*' : '';
+      const twaMode = isAndroid() ? '\n\n📱 *Android — MacroDroid bridge active*' : '';
       const welcomeMsg = `**Namaste Jons Bhai! ${greet} mubarak.** ${rel.icon}\n\n${p.name ? `${p.name}, aaj kya plan hai?` : 'Kya help chahiye aaj?'}${twaMode}`;
       setMessages([{ id: 'welcome', role: 'assistant', ts: Date.now(), content: welcomeMsg }]);
 
@@ -148,7 +159,99 @@ export default function ChatInterface() {
       }
 
       // Register SW + Init background agents
-      if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js').catch(() => {});
+        // Tell SW to register periodic sync
+        navigator.serviceWorker.ready.then(reg => {
+          reg.active?.postMessage({ type: 'REGISTER_PERIODIC_SYNC' });
+        }).catch(() => {});
+        // Listen for SW messages
+        navigator.serviceWorker.addEventListener('message', (e) => {
+          if (e.data?.type === 'QUEUE_FLUSHED') {
+            showToast(`${e.data.count} offline messages sent!`, '📡', 'success');
+          }
+          if (e.data?.type === 'NOTIFICATION_CLICK') {
+            const cmd = new URL(e.data.url, window.location.origin).searchParams.get('cmd');
+            if (cmd) setInput(cmd);
+          }
+        });
+      }
+
+      // ── Native APIs init ──────────────────────────────────
+      // Battery
+      watchBattery((info) => {
+        setBatteryInfo(formatBattery(info));
+        if (info.level < 0.1 && !info.charging) {
+          showToast(`Battery ${Math.round(info.level*100)}% — Charger lagao!`, '🔋', 'warning');
+          VIBRATE.error();
+        }
+      });
+
+      // Network quality watcher → adaptive AI mode
+      const netCleanup = watchNetwork((q) => {
+        setNetworkQuality(q);
+        if (q === 'offline') showToast('Internet nahi hai — offline mode', '📵', 'warning');
+        if (q === 'slow') showToast('Slow connection — Flash mode preferred', '🐢', 'info');
+      });
+      setNetworkQuality(getNetworkQuality());
+
+      // Badge — clear on open
+      clearBadge();
+
+      // Setup wake lock persist on page show
+      setupWakeLockPersist();
+
+      // Handle URL shortcuts from manifest (/?voice=1, /?cmd=..., /?new=1)
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        const cmdParam = params.get('cmd');
+        const voiceParam = params.get('voice');
+        const newParam = params.get('new');
+        if (cmdParam) {
+          setTimeout(() => setInput(cmdParam), 500);
+        }
+        if (voiceParam === '1') {
+          setTimeout(() => setVoiceLoopActive(true), 800);
+        }
+        if (newParam === '1') {
+          setMessages([]);
+          setSessionId(`session_${Date.now()}`);
+        }
+
+        // Share Target v2 — files shared from other apps
+        if (window.location.search.includes('shared_') || document.referrer.includes('share')) {
+          // POST share target handled by Next.js, but we can also read from URL
+          const sharedText = params.get('shared_text') || params.get('text');
+          if (sharedText) {
+            setTimeout(() => {
+              setMessages(prev => [...prev, {
+                id: `share_${Date.now()}`, role: 'user', ts: Date.now(), content: sharedText
+              }]);
+            }, 600);
+          }
+        }
+
+        // Web Share Target — file received (POST from manifest share_target)
+        // LaunchQueue API — file opened via file_handlers in manifest
+        if ('launchQueue' in window) {
+          (window as any).launchQueue.setConsumer(async (launchParams: any) => {
+            if (!launchParams.files?.length) return;
+            const file = await launchParams.files[0].getFile();
+            if (file.type.startsWith('image/')) {
+              showToast(`Image received: ${file.name}`, '🖼️', 'info');
+              setInput(`/image analyze karo: ${file.name}`);
+            } else if (file.type === 'application/pdf') {
+              showToast(`PDF received: ${file.name}`, '📄', 'info');
+              setInput(`/pdf summarize: ${file.name}`);
+            } else if (file.type.startsWith('text/')) {
+              const text = await file.text();
+              setInput(text.slice(0, 500));
+            }
+          });
+        }
+      }
+
+      return () => { netCleanup(); };
       initAgents((msg) => setMessages(prev => [...prev, {
         id: `agent_${Date.now()}`, role: 'assistant', ts: Date.now(), content: msg
       }]));
@@ -232,6 +335,8 @@ export default function ChatInterface() {
       }).catch(() => {});
     }
     setLoading(true);
+    // Badge: show 1 unread while AI is thinking
+    setBadge(1);
 
     const db = getDB();
     if (db) await db.messages.add({ sessionId, role: 'user', content: userText, ts: Date.now() });
@@ -242,6 +347,35 @@ export default function ChatInterface() {
     trackTopic(detectConversationMode(userText));
     const emotion = detectEmotion(userText);
     if (emotion !== 'neutral') logEmotion(emotion, userText);
+
+    // ── Native API slash commands ─────────────────────────────
+    if (userText.match(/^\/battery|^battery kitna|^battery status/i)) {
+      const info = await getBattery();
+      const msg = info ? `🔋 **Battery:**\n${formatBattery(info)}` : '🔋 Battery API support nahi';
+      setMessages(prev => [...prev, { id: `bat_${Date.now()}`, role: 'assistant', ts: Date.now(), content: msg }]);
+      setLoading(false); clearBadge(); return;
+    }
+    if (userText.match(/^\/caps|device capabilities/i)) {
+      const caps = getDeviceCapabilities();
+      const lines = Object.entries(caps).map(([k,v]) => `${v?'✅':'❌'} ${k}`).join('\n');
+      setMessages(prev => [...prev, { id: `caps_${Date.now()}`, role: 'assistant', ts: Date.now(), content: `📱 **Device Capabilities:**\n\n${lines}` }]);
+      setLoading(false); clearBadge(); return;
+    }
+    if (userText.match(/^\/clip|clipboard kya hai|copy kya hai/i)) {
+      const text = await readClipboard();
+      const msg = text ? `📋 **Clipboard:**\n\n${text.slice(0, 500)}` : '📋 Clipboard empty ya permission nahi';
+      setMessages(prev => [...prev, { id: `clip_${Date.now()}`, role: 'assistant', ts: Date.now(), content: msg }]);
+      setLoading(false); clearBadge(); return;
+    }
+    // Contact picker — "contact se call karo"
+    if (userText.match(/contact se call|pick contact|contact list se/i) && isContactPickerSupported()) {
+      const contact = await pickContactForCall();
+      if (contact) {
+        if (typeof window !== 'undefined') window.location.href = `tel:${contact.number}`;
+        setMessages(prev => [...prev, { id: `call_${Date.now()}`, role: 'assistant', ts: Date.now(), content: `📞 **${contact.name}** — ${contact.number} — calling...` }]);
+        setLoading(false); clearBadge(); return;
+      }
+    }
 
     // Handle /memory command
     if (userText.match(/^\/memory/i)) {
@@ -409,7 +543,10 @@ export default function ChatInterface() {
     }
 
     // ── AI GENERATION (with tool context) ───────────────────
-    const mode = detectThinkMode(userText, thinkMode);
+    // Network adaptive: 2G pe Deep → Flash automatically
+    const rawMode = detectThinkMode(userText, thinkMode);
+    const mode = networkQualityToMode(networkQuality, rawMode);
+    if (mode !== rawMode) showToast(`${networkQuality} connection — ${mode} mode use kar raha`, '📶', 'info', 2000);
     const profile = await getProfile(); // single call — cached below
     const vectorResults = await searchMemoryVectors(userText, 8);  // was 5
     const crossMems = getRelevantMemories(userText, 6);             // was 4
@@ -506,7 +643,8 @@ export default function ChatInterface() {
       setMessages(prev => prev.map(m => m.id === aiId ? { ...m, content: keywordFallback(userText) } : m));
     }
     setLoading(false);
-  }, [input, loading, messages, thinkMode, personality, sessionId, puterReady]);
+    clearBadge();
+  }, [input, loading, messages, thinkMode, personality, sessionId, puterReady, networkQuality]);
 
   const togglePin = (id: string) => {
     setMessages(prev => prev.map(m => m.id === id ? { ...m, pinned: !m.pinned } : m));
