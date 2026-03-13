@@ -111,15 +111,10 @@ export default function InputBar({
 
   // ── Voice + Command Routing ────────────────────────────────
   const handleVoiceResult = useCallback((transcript: string) => {
-    // Check for voice commands first
     const cmd = detectVoiceCommand(transcript);
     if (cmd.type === 'deeplink' && cmd.payload?.url) {
-      // Show in input then execute
       onChange(transcript);
-      setTimeout(() => {
-        executeDeepLink(cmd.payload.url);
-        onChange('');
-      }, 500);
+      setTimeout(() => { executeDeepLink(cmd.payload.url); onChange(''); }, 500);
       return;
     }
     if (cmd.type === 'appcontrol') {
@@ -127,12 +122,10 @@ export default function InputBar({
       onChange('');
       return;
     }
-    // Normal: put in input and send
+    // Put in input — user reviews + taps send manually (no galat auto-send)
     onChange(transcript);
-    setTimeout(() => {
-      if (transcript.trim()) onSend(transcript);
-    }, 300);
-  }, [onChange, onSend, onAppCommand]);
+    setTimeout(() => (document.querySelector('textarea') as HTMLTextAreaElement)?.focus(), 100);
+  }, [onChange, onAppCommand]);
 
   const startVoice = () => {
     setShowPopup(false);
