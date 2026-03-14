@@ -11,6 +11,7 @@ const PAGES = [
   { href: '/vault',       icon: '🗄️', label: 'Vault',    desc: 'Media & notes' },
   { href: '/study',       icon: '📚', label: 'Study',     desc: 'MCQs & flashcards' },
   { href: '/target',      icon: '🎯', label: 'Goals',     desc: 'Track targets' },
+  { href: '/permissions',  icon: '🔐', label: 'Permissions', desc: 'Allow all access' },
   { href: '/settings',    icon: '⚙️', label: 'Settings',  desc: 'Apps & config' },
 ];
 
