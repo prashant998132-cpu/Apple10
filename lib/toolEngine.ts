@@ -31,7 +31,7 @@ const INTENT_MAP: Record<string, ToolCategory[]> = {
   bitcoin: ['finance'], crypto: ['finance'], stock: ['finance'],
   price: ['finance'], rupee: ['finance'], dollar: ['finance'],
   emi: ['finance'], sip: ['finance'], gst: ['finance'],
-  invest: ['finance'], share: ['finance'], market: ['finance'],
+  invest: ['finance'], share: ['finance', 'social'], market: ['finance'],
 
   // News
   news: ['news'], khabar: ['news'], today: ['news', 'datetime'],
@@ -69,10 +69,12 @@ const INTENT_MAP: Record<string, ToolCategory[]> = {
 
   // Social
   post: ['social'], instagram: ['social'], caption: ['social'],
-  quote_image: ['social'], share: ['social'],
+  quote_image: ['social'],
 
   // Search
   search: ['search'], find: ['search'], dhundh: ['search'],
+  'kya hai': ['search'], 'kaun hai': ['search'], 'kya hota': ['search'],
+  'batao': ['search'], 'explain': ['search'], 'bata': ['search'],
   recipe: ['search', 'education'], book: ['search', 'education'],
 };
 
@@ -402,6 +404,40 @@ async function toolShorten(query: string): Promise<string> {
   return `🔗 **Short URL**\n\n${short}`;
 }
 
+async function toolSearch(query: string): Promise<string> {
+  // DuckDuckGo Instant Answer API — no key, free
+  const q = query.replace(/^(?:search|dhundh|kya hai|who is|what is|batao)\s+/i, '').trim();
+  try {
+    const r = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(q)}&format=json&no_html=1&skip_disambig=1`, {
+      signal: AbortSignal.timeout(6000),
+    });
+    const d = await r.json();
+    
+    if (d.AbstractText) {
+      return `🔍 **${d.Heading || q}**\n\n${d.AbstractText}\n\n*Source: ${d.AbstractSource || 'DuckDuckGo'}*`;
+    }
+    if (d.Answer) {
+      return `💡 **${q}**\n\n${d.Answer}`;
+    }
+    if (d.RelatedTopics?.length > 0) {
+      const topics = d.RelatedTopics.slice(0, 3)
+        .filter((t: any) => t.Text)
+        .map((t: any) => `• ${t.Text?.slice(0, 100)}`)
+        .join('\n');
+      return `🔍 **${q}** ke baare mein:\n\n${topics}`;
+    }
+    // Fallback: Wikipedia summary
+    const wikiR = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(q)}`, { signal: AbortSignal.timeout(5000) });
+    if (wikiR.ok) {
+      const wikiD = await wikiR.json();
+      if (wikiD.extract) return `📖 **${wikiD.title}**\n\n${wikiD.extract.slice(0, 400)}...\n\n*Wikipedia*`;
+    }
+    return `🔍 "${q}" ke liye koi direct answer nahi mila. AI se poochh raha hoon...`;
+  } catch {
+    return `🔍 "${q}" search fail hua. AI se poochh raha hoon...`;
+  }
+}
+
 // ── Category → Tool loader ────────────────────────────────────
 const CATEGORY_TOOLS: Record<ToolCategory, Array<{ name: string; keywords: string[]; fn: (q: string) => Promise<string> | string; noKey: boolean; priority: number }>> = {
   weather: [
@@ -454,7 +490,8 @@ const CATEGORY_TOOLS: Record<ToolCategory, Array<{ name: string; keywords: strin
     { name: 'social_post', keywords: ['post', 'caption', 'instagram', 'generate post'], fn: toolSocialPost, noKey: true, priority: 1 },
   ],
   search: [
-    { name: 'wikipedia', keywords: [], fn: toolWiki, noKey: true, priority: 1 },
+    { name: 'duckduckgo', keywords: [], fn: toolSearch, noKey: true, priority: 1 },
+    { name: 'wikipedia', keywords: [], fn: toolWiki, noKey: true, priority: 2 },
   ],
   datetime: [
     { name: 'datetime', keywords: [], fn: () => toolDateTime(), noKey: true, priority: 1 },
