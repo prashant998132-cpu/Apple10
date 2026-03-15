@@ -821,7 +821,7 @@ export default function ChatInterface() {
           onWakeWordToggle={() => setWakeWordEnabled(v => !v)}
         />
 
-        <div className="max-w-2xl mx-auto px-4 py-2 space-y-5 pb-6">
+        <div className="max-w-2xl mx-auto px-3 py-1 space-y-1.5 pb-4">
 
           {/* Pinned bar */}
           {pinnedList.length > 0 && (
