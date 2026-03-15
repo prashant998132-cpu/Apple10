@@ -363,22 +363,6 @@ export default function ChatInterface() {
       setLoading(false); clearBadge(); return;
     }
 
-    // ── WHATSAPP: Direct deep link, sirf message compose karo ────────────
-    const waMatch = userText.match(/whatsapp\s+(?:pe|par|mein|on)?\s*(?:message|msg|bhejo|send|likho|bhej)\s*(.*)?/i)
-      || userText.match(/(?:send|bhejo|likho)\s+(?:message|msg)\s+(?:on|pe|par)?\s*whatsapp\s*(.*)?/i);
-    if (waMatch) {
-      const msgText = (waMatch[1] || '').trim();
-      const waUrl = msgText
-        ? `whatsapp://send?text=${encodeURIComponent(msgText)}`
-        : `whatsapp://`;
-      window.location.href = waUrl;
-      const reply = msgText
-        ? `💬 WhatsApp khul raha hai — message ready: *"${msgText}"*`
-        : `💬 WhatsApp khul raha hai!`;
-      setMessages(prev => [...prev, { id: `wa_${Date.now()}`, role: 'assistant', ts: Date.now(), content: reply }]);
-      setLoading(false); clearBadge(); return;
-    }
-
     // ── Native API slash commands ─────────────────────────────
     if (userText.match(/^\/battery|^battery kitna|^battery status/i)) {
       const info = await getBattery();
@@ -472,11 +456,12 @@ export default function ChatInterface() {
     const voiceCmd = detectVoiceCommand(userText);
     if (voiceCmd.type === 'deeplink' && voiceCmd.payload?.url) {
       executeDeepLink(voiceCmd.payload.url);
+      const { name, emoji } = voiceCmd.payload;
       setMessages(prev => [...prev, {
         id: `cmd_${Date.now()}`, role: 'assistant', ts: Date.now(),
-        content: `🚀 **${voiceCmd.payload.name} khol raha hoon!**\n\n*Deep link: ${voiceCmd.payload.url.substring(0, 40)}...*`,
+        content: voiceCmd.spoken || `${emoji || '🚀'} **${name} khul raha hai!**`,
       }]);
-      setLoading(false); return;
+      setLoading(false); clearBadge(); return;
     }
     if (voiceCmd.type === 'appcontrol') {
       execAppCommand(voiceCmd.action, voiceCmd.payload);
