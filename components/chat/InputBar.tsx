@@ -133,16 +133,48 @@ export default function InputBar({
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (SR) {
       const rec = new SR();
-      rec.lang = 'hi-IN'; rec.continuous = false; rec.interimResults = true;
-      rec.onresult = (e: any) => onChange(Array.from(e.results).map((r: any) => r[0].transcript).join(''));
+      // Try hi-IN first, fallback to en-IN if results are empty
+      rec.lang = 'hi-IN';
+      rec.continuous = false;
+      rec.interimResults = true;
+      rec.maxAlternatives = 2;
+
+      let finalTranscript = '';
+      rec.onresult = (e: any) => {
+        let interim = '';
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+          if (e.results[i].isFinal) {
+            finalTranscript += e.results[i][0].transcript;
+          } else {
+            interim += e.results[i][0].transcript;
+          }
+        }
+        // Show interim in input so user sees live transcription
+        onChange(finalTranscript || interim);
+      };
       rec.onend = () => {
         setListening(false);
-        const finalText = textareaRef.current?.value?.trim() || value.trim();
-        if (finalText) handleVoiceResult(finalText);
+        const text = finalTranscript.trim() || textareaRef.current?.value?.trim() || value.trim();
+        // If result is empty or very short, try en-IN
+        if (!text || text.length < 2) {
+          const rec2 = new SR();
+          rec2.lang = 'en-IN'; rec2.continuous = false; rec2.interimResults = false;
+          rec2.onresult = (e2: any) => {
+            const t = Array.from(e2.results).map((r: any) => r[0].transcript).join('');
+            onChange(t);
+          };
+          rec2.onend = () => {
+            const t2 = textareaRef.current?.value?.trim() || value.trim();
+            if (t2) handleVoiceResult(t2);
+          };
+          rec2.onerror = () => startWhisperSTT();
+          try { rec2.start(); } catch { startWhisperSTT(); }
+          return;
+        }
+        if (text) handleVoiceResult(text);
       };
       rec.onerror = () => { setListening(false); startWhisperSTT(); };
       rec.start(); setListening(true);
-      // Keep screen on during voice
       if ('wakeLock' in navigator) (navigator as any).wakeLock.request('screen').catch(() => {});
       if (navigator.vibrate) navigator.vibrate([30, 50, 30]);
     } else {
