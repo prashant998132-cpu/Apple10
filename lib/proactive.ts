@@ -21,7 +21,19 @@ export function startProactiveEngine(onMessage: (msg: string) => void): () => vo
       if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
     };
 
-    if (hour === 8  && min < 10) trigger('morning', '🌅 **Good Morning Jons Bhai!** Aaj ka din badhiya rahega! `/weather` type karo ya Goals tab dekho 💪');
+    if (hour === 8  && min < 10) {
+      // Enhanced morning brief with routine
+      try {
+        const routine = JSON.parse(localStorage.getItem('jarvis_routine_v2') || '[]');
+        const todayItems = routine.filter((r: any) => !r.doneDate || r.doneDate !== new Date().toISOString().slice(0,10));
+        const routineStr = todayItems.length > 0
+          ? `\n\n📋 **Aaj ki routine:** ${todayItems.slice(0,3).map((r: any) => `${r.time} ${r.emoji}`).join(' → ')}`
+          : '';
+        trigger('morning', `🌅 **Good Morning Jons Bhai!**${routineStr}\n\nAaj ka din badhiya rahega! 💪`);
+      } catch {
+        trigger('morning', '🌅 **Good Morning Jons Bhai!** Aaj ka din badhiya rahega! 💪');
+      }
+    }
     if (hour === 13 && min < 10) trigger('lunch', '🍽️ **Lunch time ho gaya!** Kha lo Bhai — aur 2 glass paani bhi piyo 💧');
     if (hour === 20 && min < 10) trigger('evening', '🌙 **Shaam ho gayi Bhai.** Aaj ka kaam kaisa raha? Goals tab mein progress update karo! 🎯');
     if (hour >= 0  && hour < 4 && min < 10) trigger('midnight', `🦉 **Raat ke ${hour} baj gaye!** So jao Bhai — neend se hi brain recharge hota hai 😴`);
@@ -47,6 +59,26 @@ export function startProactiveEngine(onMessage: (msg: string) => void): () => vo
 
   run();
   const iv = setInterval(run, 5 * 60 * 1000);
+
+  // Register daily routine alarms
+  try {
+    const routine = JSON.parse(localStorage.getItem('jarvis_routine_v2') || '[]');
+    routine.filter((r: any) => r.alarm).forEach((r: any) => {
+      const [h, m] = r.time.split(':').map(Number);
+      const now = new Date();
+      const alarm = new Date();
+      alarm.setHours(h, m, 0, 0);
+      if (alarm <= now) alarm.setDate(alarm.getDate() + 1);
+      const ms = alarm.getTime() - now.getTime();
+      setTimeout(() => {
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification(`⏰ ${r.emoji} ${r.label}`, { body: `${r.time} — Time ho gaya!`, icon: '/icons/icon-192.png' });
+        }
+        if (navigator.vibrate) navigator.vibrate([300, 100, 300]);
+      }, ms);
+    });
+  } catch {}
+
   return () => clearInterval(iv);
 }
 
