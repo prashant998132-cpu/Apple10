@@ -40,6 +40,7 @@ export interface Message {
   mode?: string; type?: 'text' | 'image' | 'tool';
   imageUrl?: string; liked?: boolean; pinned?: boolean; thinking?: string;
   toolsUsed?: string[];
+  widget?: { type: string; data: any }; // inline rich card
 }
 
 export default function ChatInterface() {
@@ -348,6 +349,36 @@ export default function ChatInterface() {
     const emotion = detectEmotion(userText);
     if (emotion !== 'neutral') logEmotion(emotion, userText);
 
+    // ── IMAGE: Natural language detect → seedha generate, AI ke paas nahi ──
+    const imgMatch = userText.match(/(?:image|imag|photo|pic|picture|wallpaper|illustration|drawing|art)\s+(?:banao|bana|generate|create|bna|bnao|chahiye|do|kar|lo|de)\s*(.+)?|(?:banao|bana|generate|create)\s+(?:image|imag|photo|pic|wallpaper)\s*(?:of|ki|ka|ke)?\s*(.+)?/i);
+    if (imgMatch || userText.match(/^(image|photo|pic)\s+.{3,}/i)) {
+      let prompt = (imgMatch?.[1] || imgMatch?.[2] || userText.replace(/image|imag|photo|banao|bana|generate|create|ki|ka|ke|ek|do|wallpaper/gi, '').trim()) || 'beautiful India';
+      if (prompt.length < 3) prompt = userText;
+      setMessages(prev => [...prev, { id: `img_thinking_${Date.now()}`, role: 'assistant', ts: Date.now(), content: `🎨 Generating: *"${prompt}"*...` }]);
+      const { url, source } = await generateImage(prompt);
+      const aiMsg: Message = { id: `a_img_${Date.now()}`, role: 'assistant', ts: Date.now(), type: 'image', imageUrl: url, content: `🎨 **"${prompt}"**\n*via ${source}*` };
+      setMessages(prev => [...prev.filter(m => !m.id.startsWith('img_thinking_')), aiMsg]);
+      if (db) await db.messages.add({ sessionId, role: 'assistant', content: aiMsg.content, ts: Date.now() });
+      await addXP(3);
+      setLoading(false); clearBadge(); return;
+    }
+
+    // ── WHATSAPP: Direct deep link, sirf message compose karo ────────────
+    const waMatch = userText.match(/whatsapp\s+(?:pe|par|mein|on)?\s*(?:message|msg|bhejo|send|likho|bhej)\s*(.*)?/i)
+      || userText.match(/(?:send|bhejo|likho)\s+(?:message|msg)\s+(?:on|pe|par)?\s*whatsapp\s*(.*)?/i);
+    if (waMatch) {
+      const msgText = (waMatch[1] || '').trim();
+      const waUrl = msgText
+        ? `whatsapp://send?text=${encodeURIComponent(msgText)}`
+        : `whatsapp://`;
+      window.location.href = waUrl;
+      const reply = msgText
+        ? `💬 WhatsApp khul raha hai — message ready: *"${msgText}"*`
+        : `💬 WhatsApp khul raha hai!`;
+      setMessages(prev => [...prev, { id: `wa_${Date.now()}`, role: 'assistant', ts: Date.now(), content: reply }]);
+      setLoading(false); clearBadge(); return;
+    }
+
     // ── Native API slash commands ─────────────────────────────
     if (userText.match(/^\/battery|^battery kitna|^battery status/i)) {
       const info = await getBattery();
@@ -492,6 +523,26 @@ export default function ChatInterface() {
     // ── AUTONOMOUS TOOL EXECUTION ────────────────────────────
     let toolResultTexts: string[] = [];
     let toolsUsedNames: string[] = [];
+    let inlineWidget: { type: string; data: any } | undefined;
+
+    // Instant widget commands
+    if (userText.match(/^\/calc|^calculator$/i)) {
+      setMessages(prev => [...prev, { id: `w_${Date.now()}`, role: 'assistant', ts: Date.now(), content: '🔢 Calculator ready!', widget: { type: 'calculator', data: {} } }]);
+      setLoading(false); clearBadge(); return;
+    }
+    const timerMatch = userText.match(/(\d+)\s*(min|minute|sec|second|ghanta|hour)/i);
+    if (timerMatch && userText.match(/timer|countdown/i)) {
+      const val = parseInt(timerMatch[1]);
+      const unit = timerMatch[2].toLowerCase();
+      const seconds = unit.startsWith('h') ? val * 3600 : unit.startsWith('m') ? val * 60 : val;
+      setMessages(prev => [...prev, { id: `w_${Date.now()}`, role: 'assistant', ts: Date.now(), content: `⏱️ ${val} ${unit} timer!`, widget: { type: 'timer', data: { seconds } } }]);
+      setLoading(false); clearBadge(); return;
+    }
+    const qrMatch = userText.match(/^qr\s+(.+)/i);
+    if (qrMatch) {
+      setMessages(prev => [...prev, { id: `w_${Date.now()}`, role: 'assistant', ts: Date.now(), content: '📱 QR Code ready!', widget: { type: 'qr', data: { text: qrMatch[1].trim() } } }]);
+      setLoading(false); clearBadge(); return;
+    }
 
     if (queryNeedsTools(userText)) {
       setToolsRunning(true);
@@ -499,21 +550,26 @@ export default function ChatInterface() {
         const toolResults = await runAutonomousTools(userText, 2);
         for (const tr of toolResults) {
           if (tr.data?.startsWith?.('__SOCIAL_POST_REQUEST__')) {
-            // Social post — handle separately
             const topic = tr.data.replace('__SOCIAL_POST_REQUEST__:', '');
             const post = await generateSocialPost(topic);
-            const aiMsg: Message = { id: `a_${Date.now()}`, role: 'assistant', ts: Date.now(), content: `📱 **Social Post — "${topic}"**\n\n${post}` };
+            const aiMsg: Message = { id: `a_${Date.now()}`, role: 'assistant', ts: Date.now(), content: `📱 **Social Post**\n\n${post}` };
             setMessages(prev => [...prev, aiMsg]);
             if (db) await db.messages.add({ sessionId, role: 'assistant', content: aiMsg.content, ts: Date.now() });
-            setLoading(false); setToolsRunning(false);
-            return;
+            setLoading(false); setToolsRunning(false); return;
           }
           toolResultTexts.push(tr.data);
           toolsUsedNames.push(tr.tool);
+          if (!inlineWidget && (tr as any).raw) {
+            if (tr.tool === 'weather') inlineWidget = { type: 'weather', data: (tr as any).raw };
+            else if (tr.tool === 'crypto' || tr.tool === 'finance') inlineWidget = { type: 'finance', data: (tr as any).raw };
+            else if (tr.tool === 'news') inlineWidget = { type: 'news', data: (tr as any).raw };
+          }
         }
       } catch {}
       setToolsRunning(false);
     }
+
+    // If tools returned complete answer
 
     // If tools returned complete answer and no AI needed
     if (toolResultTexts.length > 0 && userText.match(/^(weather|mausam|joke|quote|time|kitne baje|holiday|crypto|iss|news)\s*$/i)) {
@@ -521,6 +577,7 @@ export default function ChatInterface() {
         id: `a_${Date.now()}`, role: 'assistant', ts: Date.now(),
         content: toolResultTexts.join('\n\n---\n\n'),
         toolsUsed: toolsUsedNames,
+        widget: inlineWidget,
       };
       setMessages(prev => [...prev, aiMsg]);
       if (db) await db.messages.add({ sessionId, role: 'assistant', content: aiMsg.content, ts: Date.now() });
