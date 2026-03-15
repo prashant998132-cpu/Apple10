@@ -82,7 +82,7 @@ export function isDuplicateAIRequest(text: string): boolean {
   const key = text.trim().slice(0, 100).toLowerCase();
   const last = recentAIRequests.get(key) || 0;
   const now = Date.now();
-  if (now - last < 3000) return true; // same message within 3 seconds = duplicate
+  if (now - last < 5000) return true; // same message within 5 seconds = duplicate
   recentAIRequests.set(key, now);
   // Clean old entries
   if (recentAIRequests.size > 50) {
