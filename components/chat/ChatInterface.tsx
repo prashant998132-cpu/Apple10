@@ -25,6 +25,7 @@ import { trackApiCall } from '@/lib/apiStats';
 import { isDuplicateAIRequest, trackVercelCall, getVercelUsage } from '@/lib/smartCache';
 import { initAgents, setReminder, parseReminderIntent, queueAgentTask, showNotification } from '@/lib/agentManager';
 import { detectAppsForQuery, isAppEnabled } from '@/lib/connectedApps';
+import { parseRoutineCommand, getRoutine, saveRoutine, getTodayTargets, saveTargets, formatRoutineForChat, formatTargetsForChat, registerRoutineAlarms, scheduleAlarm } from '@/lib/routineManager';
 import { extractAndStoreFacts, getRelevantMemories, getProactiveSuggestion, getMemorySummary } from '@/lib/crossSessionMemory';
 import {
   getBattery, watchBattery, formatBattery, watchNetwork, getNetworkQuality, networkQualityToMode,
@@ -251,6 +252,9 @@ export default function ChatInterface() {
         id: `agent_${Date.now()}`, role: 'assistant', ts: Date.now(), content: msg
       }]));
 
+      // Register routine alarms
+      registerRoutineAlarms();
+
       // Proactive engine
       const cleanup = startProactiveEngine((msg: string) => {
         setMessages(prev => [...prev, { id: `p_${Date.now()}`, role: 'assistant', content: msg, ts: Date.now() }]);
@@ -361,6 +365,79 @@ export default function ChatInterface() {
       if (db) await db.messages.add({ sessionId, role: 'assistant', content: aiMsg.content, ts: Date.now() });
       await addXP(3);
       setLoading(false); clearBadge(); return;
+    }
+
+    // ── ROUTINE + TARGET + ALARM ──────────────────────────────
+    const routineCmd = parseRoutineCommand(userText);
+    if (routineCmd.type) {
+      const routine = getRoutine();
+      const targets = getTodayTargets();
+      const today = new Date().toISOString().slice(0, 10);
+
+      if (routineCmd.type === 'show_routine') {
+        setMessages(prev => [...prev, { id: `r_${Date.now()}`, role: 'assistant', ts: Date.now(), content: formatRoutineForChat(routine) }]);
+        setLoading(false); clearBadge(); return;
+      }
+      if (routineCmd.type === 'show_targets') {
+        setMessages(prev => [...prev, { id: `t_${Date.now()}`, role: 'assistant', ts: Date.now(), content: formatTargetsForChat(targets) }]);
+        setLoading(false); clearBadge(); return;
+      }
+      if (routineCmd.type === 'clear_routine') {
+        saveRoutine([]);
+        setMessages(prev => [...prev, { id: `r_${Date.now()}`, role: 'assistant', ts: Date.now(), content: '🗑️ Routine clear ho gayi!' }]);
+        setLoading(false); clearBadge(); return;
+      }
+      if (routineCmd.type === 'mark_done') {
+        const label = routineCmd.data?.label?.toLowerCase() || '';
+        const updated = routine.map(r =>
+          r.label.toLowerCase().includes(label) ? { ...r, done: true, doneDate: today } : r
+        );
+        saveRoutine(updated);
+        const found = updated.find(r => r.label.toLowerCase().includes(label));
+        setMessages(prev => [...prev, { id: `r_${Date.now()}`, role: 'assistant', ts: Date.now(), content: found ? `✅ **${found.emoji} ${found.label}** done mark ho gaya! +5 XP 🎉` : '✅ Done!' }]);
+        if (found) await addXP(5);
+        setLoading(false); clearBadge(); return;
+      }
+      if (routineCmd.type === 'add_routine') {
+        const d = routineCmd.data;
+        if (d.bulk) {
+          const newItems = d.bulk.map((item: any) => ({
+            id: `r_${Date.now()}_${Math.random()}`, time: item.time, label: item.label,
+            emoji: item.emoji, days: [], alarm: false, done: false,
+          }));
+          saveRoutine([...routine, ...newItems]);
+          // Register alarms
+          newItems.filter((r: any) => r.alarm).forEach((r: any) => scheduleAlarm(r.time, r.label));
+          const preview = newItems.map((r: any) => `${r.time} ${r.emoji} ${r.label}`).join('\n');
+          setMessages(prev => [...prev, { id: `r_${Date.now()}`, role: 'assistant', ts: Date.now(), content: `📋 **Routine set ho gayi!**\n\n${preview}\n\n_"routine dikhao" ya "done gym" bol sakte ho_` }]);
+        } else {
+          const newItem = { id: `r_${Date.now()}`, time: d.time, label: d.label, emoji: d.emoji, days: [], alarm: d.alarm, done: false };
+          saveRoutine([...routine, newItem]);
+          if (d.alarm) scheduleAlarm(d.time, d.label);
+          setMessages(prev => [...prev, { id: `r_${Date.now()}`, role: 'assistant', ts: Date.now(), content: `✅ **${d.emoji} ${d.label}** — ${d.time} pe ${d.alarm ? '🔔 alarm bhi lagaya!' : 'routine mein add ho gaya!'}` }]);
+        }
+        setLoading(false); clearBadge(); return;
+      }
+      if (routineCmd.type === 'add_target') {
+        const d = routineCmd.data;
+        const newTarget = { id: `tg_${Date.now()}`, title: d.title, emoji: d.emoji, target: d.target, progress: 0, unit: d.unit, date: today, deadline: d.deadline };
+        saveTargets([...targets, newTarget]);
+        setMessages(prev => [...prev, { id: `t_${Date.now()}`, role: 'assistant', ts: Date.now(), content: `🎯 **Target set!** ${d.emoji} ${d.title}: **${d.target} ${d.unit}** aaj ke liye${d.deadline ? ` (by ${d.deadline})` : ''}` }]);
+        setLoading(false); clearBadge(); return;
+      }
+    }
+
+    // ── THEME CHANGE ──────────────────────────────────────────
+    if (userText.match(/theme.*change|change.*theme|dark.*mode|light.*mode|background.*change|raat.*wala.*theme|din.*wala.*theme/i)) {
+      const isDark = userText.match(/dark|raat|black|andhera/i);
+      const isLight = userText.match(/light|din|white|ujala/i);
+      if (typeof document !== 'undefined') {
+        const theme = isDark ? 'dark' : isLight ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', theme);
+        try { localStorage.setItem('jarvis_theme', theme); } catch {}
+        setMessages(prev => [...prev, { id: `th_${Date.now()}`, role: 'assistant', ts: Date.now(), content: `${isDark ? '🌙' : '☀️'} **${isDark ? 'Dark' : 'Light'} mode** on ho gaya!` }]);
+        setLoading(false); clearBadge(); return;
+      }
     }
 
     // ── Native API slash commands ─────────────────────────────
