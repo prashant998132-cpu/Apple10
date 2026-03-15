@@ -16,6 +16,7 @@ import ThinkBubble from './ThinkBubble';
 import CommandPalette from '@/components/CommandPalette';
 import ChatHistorySidebar from '@/components/ChatHistorySidebar';
 import TopBar from '@/components/TopBar';
+import HomeScreen from '@/components/HomeScreen';
 import JarvisOrb from '@/components/JarvisOrb';
 import CompressPopup from '@/components/CompressPopup';
 import ToastContainer, { showToast } from '@/components/Toast';
@@ -823,6 +824,14 @@ export default function ChatInterface() {
 
         <div className="max-w-2xl mx-auto px-3 py-1 space-y-1.5 pb-4">
 
+          {/* ── HOME SCREEN — when only welcome message ── */}
+          {messages.length <= 1 && messages[0]?.id === 'welcome' && (
+            <HomeScreen
+              name={relationship.name !== 'Stranger' ? 'Prashant' : 'Jons Bhai'}
+              onSend={(text) => sendMessage(text)}
+            />
+          )}
+
           {/* Pinned bar */}
           {pinnedList.length > 0 && (
             <div className="bg-amber-500/8 border border-amber-500/20 rounded-xl p-2.5 mt-1">
@@ -834,6 +843,8 @@ export default function ChatInterface() {
           )}
 
           {messages.map(msg => (
+            // Hide welcome message — HomeScreen handles it
+            msg.id === 'welcome' && messages.length <= 1 ? null :
             <div key={msg.id}>
               {msg.thinking && <ThinkBubble thinking={msg.thinking} />}
               <MessageBubble
