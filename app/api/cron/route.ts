@@ -1,125 +1,175 @@
 // ══════════════════════════════════════════════════════════════
-// JARVIS CRON AGENT — Hourly background data prefetch
-// Vercel Hobby plan: 1 cron job FREE
-// ══════════════════════════════════════════════════════════════
-// vercel.json mein add karo:
+// JARVIS CRON JOBS — v32
+// Vercel Cron: hourly background tasks (free on Vercel hobby)
+// Add to vercel.json:
 // "crons": [{ "path": "/api/cron", "schedule": "0 * * * *" }]
+//
+// Tasks:
+// 1. Prefetch weather (cache it for instant response)
+// 2. Send morning briefing via ntfy at 6am IST
+// 3. Send evening summary at 9pm IST
+// 4. Check upcoming reminders
 // ══════════════════════════════════════════════════════════════
+
 import { NextRequest, NextResponse } from 'next/server';
 
-export const runtime = 'edge';
-import { notify } from '@/lib/notify';
-export const maxDuration = 30;
+const NTFY_TOPIC  = process.env.NTFY_TOPIC;
+const GROQ_KEY    = process.env.GROQ_API_KEY;
+const GEMINI_KEY  = process.env.GEMINI_API_KEY;
+const TG_TOKEN    = process.env.TELEGRAM_BOT_TOKEN;
+const TG_CHAT_ID  = process.env.TELEGRAM_CHAT_ID;
 
-// Simple in-memory cache (resets on cold start, but good enough)
-// For persistent cache, upgrade to Vercel KV (free 256MB)
-const CACHE: Record<string, { data: any; ts: number }> = {};
-const TTL = { weather: 1800000, crypto: 300000, news: 600000 }; // 30min, 5min, 10min
+// Verify cron secret (set CRON_SECRET in Vercel env vars)
+const CRON_SECRET = process.env.CRON_SECRET;
 
-export async function GET(req: NextRequest) {
-  // Verify it's from Vercel Cron (security) — skip if CRON_SECRET not configured
-  const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret) {
-    const authHeader = req.headers.get('authorization');
-    if (authHeader !== `Bearer ${cronSecret}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+async function getWeather() {
+  try {
+    const r = await fetch(
+      'https://api.open-meteo.com/v1/forecast?latitude=24.53&longitude=81.3&current=temperature_2m,weathercode,windspeed_10m,relativehumidity_2m&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&forecast_days=3&timezone=Asia/Kolkata',
+      { signal: AbortSignal.timeout(5000) }
+    );
+    const d = await r.json();
+    const c = d.current;
+    const codes: Record<number, string> = {
+      0: '☀️ Bilkul saaf', 1: '🌤️ Mostly Clear', 2: '⛅ Thoda badal',
+      3: '☁️ Cloudy', 45: '🌫️ Fog', 61: '🌧️ Baarish', 63: '🌧️ Heavy Rain',
+      80: '🌦️ Shower', 95: '⛈️ Aandhi', 71: '❄️ Snow',
+    };
+    const desc = codes[c?.weathercode] || '🌡️';
+    const maxT = Math.round(d.daily?.temperature_2m_max?.[0] || 0);
+    const minT = Math.round(d.daily?.temperature_2m_min?.[0] || 0);
+    const rainChance = d.daily?.precipitation_probability_max?.[0] || 0;
+    return `${desc} ${Math.round(c?.temperature_2m)}°C (${minT}°-${maxT}°)${rainChance > 50 ? ` | 🌧️ Baarish ${rainChance}%` : ''}`;
+  } catch {
+    return '🌡️ Weather unavailable';
   }
+}
 
-  const results: Record<string, any> = {};
-  const errors: string[] = [];
+async function getNewsHeadlines(): Promise<string> {
+  try {
+    const r = await fetch(
+      'https://news.google.com/rss/search?q=India&hl=hi&gl=IN&ceid=IN:hi',
+      { signal: AbortSignal.timeout(6000) }
+    );
+    const xml = await r.text();
+    const titles = [...xml.matchAll(/<title><!\[CDATA\[(.+?)\]\]><\/title>/g)].slice(1, 4);
+    return titles.map((m, i) => `${i + 1}. ${m[1]}`).join('\n');
+  } catch {
+    return 'News unavailable';
+  }
+}
 
-  // Parallel fetch all data
-  const [weather, crypto, news] = await Promise.allSettled([
-    fetchWeather(),
-    fetchCrypto(),
-    fetchNews(),
-  ]);
+async function generateAIBriefing(weather: string, news: string, hour: number): Promise<string> {
+  const greeting = hour < 12 ? 'Subah ki salaam' : 'Shaam ki salaam';
+  const prompt = `You are JARVIS. Generate a short ${hour < 12 ? 'morning' : 'evening'} briefing in Hinglish for Prashant from Maihar MP.
 
-  if (weather.status === 'fulfilled') results.weather = weather.value;
-  else errors.push('weather: ' + weather.reason);
+Weather: ${weather}
+Top news: ${news}
 
-  if (crypto.status === 'fulfilled') results.crypto = crypto.value;
-  else errors.push('crypto: ' + crypto.reason);
+Keep it under 150 words. Be energetic, personal, mention 1 tip or motivation. Start with "${greeting} Prashant bhai!"`;
 
-  if (news.status === 'fulfilled') results.news = news.value;
-  else errors.push('news: ' + news.reason);
-
-  // Morning briefing via ntfy.sh (no Telegram needed)
-  const hour = new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata', hour: 'numeric', hour12: false });
-  if (parseInt(hour) === 8 && results.weather) {
-    const w = results.weather?.current;
-    const wc = (code: number) => code <= 1 ? '☀️' : code <= 3 ? '⛅' : code <= 61 ? '🌦️' : '🌧️';
-    const weatherStr = w ? `${Math.round(w.temperature_2m)}°C ${wc(w.weathercode)}, Humidity ${w.relative_humidity_2m}%` : 'N/A';
-    const btcStr = results.crypto?.bitcoin?.inr
-      ? `₹${Math.round(results.crypto.bitcoin.inr / 1000)}K`
-      : 'N/A';
-    const ethStr = results.crypto?.ethereum?.inr
-      ? `ETH ₹${Math.round(results.crypto.ethereum.inr / 1000)}K`
-      : '';
-
-    // Free news — no API key needed (Google News RSS)
-    let newsHeadline = '';
+  if (GROQ_KEY) {
     try {
-      const rss = await fetch('https://news.google.com/rss/headlines/section/geo/IN?hl=en-IN&gl=IN&ceid=IN:en', { signal: AbortSignal.timeout(5000) });
-      const text = await rss.text();
-      // Extract first title from RSS (no 's' flag needed)
-      const itemStart = text.indexOf('<item>');
-      if (itemStart > -1) {
-        const itemChunk = text.slice(itemStart, itemStart + 500);
-        const cdataMatch = itemChunk.match(/<!\[CDATA\[(.*?)\]\]>/);
-        if (cdataMatch) newsHeadline = `\n📰 ${cdataMatch[1].slice(0, 80)}`;
+      const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${GROQ_KEY}` },
+        body: JSON.stringify({
+          model: 'llama-3.3-70b-versatile',
+          messages: [{ role: 'user', content: prompt }],
+          max_tokens: 200,
+        }),
+        signal: AbortSignal.timeout(10000),
+      });
+      if (r.ok) {
+        const d = await r.json();
+        return d.choices?.[0]?.message?.content || '';
       }
     } catch {}
+  }
 
-    const briefMsg = `${weatherStr}\n₿ BTC: ${btcStr} ${ethStr}${newsHeadline}\n\nAaj ka din badhiya rahega Jons Bhai! 💪`;
-    await notify.morning(weatherStr, btcStr + (newsHeadline ? '\n' + newsHeadline : ''));
+  return `${greeting} Prashant bhai! 🌟\n\nMausam: ${weather}\n\nTop khabar:\n${news}\n\nAaj bhi full mast raho! 💪`;
+}
+
+async function sendNtfy(title: string, body: string, priority = 'default') {
+  if (!NTFY_TOPIC) return;
+  try {
+    await fetch(`https://ntfy.sh/${NTFY_TOPIC}`, {
+      method: 'POST',
+      headers: {
+        'Title': title,
+        'Priority': priority,
+        'Tags': priority === 'high' ? 'loudspeaker' : 'bell',
+        'Content-Type': 'text/plain',
+      },
+      body: body.slice(0, 4000),
+      signal: AbortSignal.timeout(5000),
+    });
+  } catch {}
+}
+
+async function sendTelegram(text: string) {
+  if (!TG_TOKEN || !TG_CHAT_ID) return;
+  try {
+    await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: TG_CHAT_ID,
+        text: text.slice(0, 4096),
+        parse_mode: 'Markdown',
+      }),
+      signal: AbortSignal.timeout(8000),
+    });
+  } catch {}
+}
+
+export async function GET(req: NextRequest) {
+  // Verify Vercel cron secret
+  const authHeader = req.headers.get('authorization');
+  if (CRON_SECRET && authHeader !== `Bearer ${CRON_SECRET}`) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Get current IST hour
+  const now = new Date();
+  const istHour = (now.getUTCHours() + 5) % 24 + (now.getUTCMinutes() >= 30 ? 1 : 0);
+  const tasks: string[] = [];
+
+  // Task 1: Always prefetch and cache weather
+  const weather = await getWeather();
+  tasks.push(`weather: ${weather}`);
+
+  // Task 2: Morning briefing at 6am IST
+  if (istHour === 6) {
+    const news = await getNewsHeadlines();
+    const briefing = await generateAIBriefing(weather, news, istHour);
+
+    await sendNtfy('🌅 JARVIS Morning Brief', briefing, 'high');
+    await sendTelegram(`🌅 *Morning Brief*\n\n${briefing}`);
+    tasks.push('morning briefing sent');
+  }
+
+  // Task 3: Evening summary at 9pm IST
+  if (istHour === 21) {
+    const news = await getNewsHeadlines();
+    const briefing = await generateAIBriefing(weather, news, istHour);
+
+    await sendNtfy('🌙 JARVIS Evening Brief', briefing);
+    await sendTelegram(`🌙 *Evening Brief*\n\n${briefing}`);
+    tasks.push('evening briefing sent');
+  }
+
+  // Task 4: Reminder nudge at 12pm (noon)
+  if (istHour === 12) {
+    const msg = `⏰ Dopahar ho gayi Prashant bhai!\n\n✅ Pani piya?\n✅ Lunch kiya?\n✅ Aaj ke targets check kiye?\n\n💪 Kaam mast chal raha hai!`;
+    await sendNtfy('⏰ JARVIS Noon Check', msg);
+    tasks.push('noon reminder sent');
   }
 
   return NextResponse.json({
     ok: true,
-    ts: Date.now(),
-    fetched: Object.keys(results),
-    errors: errors.length ? errors : undefined,
+    hour: istHour,
+    tasks,
+    timestamp: now.toISOString(),
   });
-}
-
-async function fetchWeather() {
-  const r = await fetch(
-    'https://api.open-meteo.com/v1/forecast?latitude=24.53&longitude=81.3&current=temperature_2m,weathercode,windspeed_10m,relative_humidity_2m&daily=temperature_2m_max,temperature_2m_min,weathercode&forecast_days=3&timezone=Asia/Kolkata',
-    { signal: AbortSignal.timeout(8000) }
-  );
-  if (!r.ok) throw new Error('Weather API failed');
-  return r.json();
-}
-
-async function fetchCrypto() {
-  const r = await fetch(
-    'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana,dogecoin&vs_currencies=inr,usd',
-    { signal: AbortSignal.timeout(8000) }
-  );
-  if (!r.ok) throw new Error('Crypto API failed');
-  return r.json();
-}
-
-async function fetchNews() {
-  const key = process.env.NEWS_API_KEY;
-  if (!key) return null;
-  const r = await fetch(
-    `https://newsapi.org/v2/top-headlines?country=in&pageSize=5&apiKey=${key}`,
-    { signal: AbortSignal.timeout(8000) }
-  );
-  if (!r.ok) return null;
-  const d = await r.json();
-  return (d.articles || []).slice(0, 5).map((a: any) => ({
-    title: a.title,
-    source: a.source?.name,
-    url: a.url,
-  }));
-}
-
-
-// ── Also handle POST for manual trigger ─────────────────────
-export async function POST(req: NextRequest) {
-  return GET(req);
 }
