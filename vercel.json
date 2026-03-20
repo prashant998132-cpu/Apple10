@@ -1,36 +1,17 @@
 {
+  "crons": [
+    {
+      "path": "/api/cron",
+      "schedule": "0 * * * *"
+    }
+  ],
   "headers": [
-    {
-      "source": "/.well-known/assetlinks.json",
-      "headers": [
-        { "key": "Content-Type",                "value": "application/json" },
-        { "key": "Access-Control-Allow-Origin", "value": "*" },
-        { "key": "Cache-Control",               "value": "public, max-age=3600" }
-      ]
-    },
-    {
-      "source": "/sw.js",
-      "headers": [
-        { "key": "Cache-Control",               "value": "no-cache, no-store, must-revalidate" },
-        { "key": "Service-Worker-Allowed",      "value": "/" }
-      ]
-    },
-    {
-      "source": "/manifest.json",
-      "headers": [
-        { "key": "Content-Type",  "value": "application/manifest+json" },
-        { "key": "Cache-Control", "value": "public, max-age=3600" }
-      ]
-    },
     {
       "source": "/api/(.*)",
       "headers": [
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "X-Frame-Options",        "value": "DENY" }
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET,POST,OPTIONS" }
       ]
     }
-  ],
-  "rewrites": [
-    { "source": "/.well-known/assetlinks.json", "destination": "/.well-known/assetlinks.json" }
   ]
 }
