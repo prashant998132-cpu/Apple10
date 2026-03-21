@@ -12,6 +12,7 @@ export default function manifest(): MetadataRoute.Manifest {
     background_color: '#0a0b0f',
     lang: 'hi-IN',
     categories: ['productivity', 'utilities', 'lifestyle'],
+    id: 'jarvis-ai-prashant-maihar-v1',
     icons: [
       { src: '/icons/icon-72.png',      sizes: '72x72',   type: 'image/png', purpose: 'any' },
       { src: '/icons/icon-96.png',      sizes: '96x96',   type: 'image/png', purpose: 'any' },
@@ -25,14 +26,13 @@ export default function manifest(): MetadataRoute.Manifest {
       { src: '/icons/maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
     ],
     shortcuts: [
-      { name: 'Naya Chat',  short_name: 'Chat',    url: '/?new=1',      icons: [{ src: '/icons/icon-96.png', sizes: '96x96' }] },
-      { name: 'Mausam',     short_name: 'Weather', url: '/?q=weather',  icons: [{ src: '/icons/icon-96.png', sizes: '96x96' }] },
-      { name: 'Cricket',    short_name: 'Cricket', url: '/?q=cricket',  icons: [{ src: '/icons/icon-96.png', sizes: '96x96' }] },
+      { name: 'Naya Chat',  short_name: 'Chat',    url: '/?new=1',      icons: [{ src: '/icons/icon-96.png', sizes: '96x96', type: 'image/png' }] },
+      { name: 'Mausam',     short_name: 'Weather', url: '/?q=weather',  icons: [{ src: '/icons/icon-96.png', sizes: '96x96', type: 'image/png' }] },
+      { name: 'Settings',   short_name: 'Settings',url: '/settings',    icons: [{ src: '/icons/icon-96.png', sizes: '96x96', type: 'image/png' }] },
     ],
     screenshots: [
-      { src: '/screenshots/screen1.png', sizes: '540x960', type: 'image/png', label: 'JARVIS Chat Interface' } as any,
+      { src: '/screenshots/screen1.png', sizes: '540x960', type: 'image/png', label: 'JARVIS Chat' } as any,
     ],
     prefer_related_applications: false,
-    id: 'jarvis-ai-prashant-maihar',
   };
 }
