@@ -6,61 +6,41 @@ export default function ServiceWorkerRegister() {
     if (typeof window === 'undefined') return;
     if (!('serviceWorker' in navigator)) return;
 
-    // Register SW
     navigator.serviceWorker.register('/sw.js', { scope: '/' })
-      .then((reg) => {
-        console.log('[JARVIS SW] Registered:', reg.scope);
-
-        // Check for updates
+      .then(reg => {
+        console.log('[JARVIS SW] ✅ Registered:', reg.scope);
         reg.addEventListener('updatefound', () => {
-          const newWorker = reg.installing;
-          newWorker?.addEventListener('statechange', () => {
-            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              // New version available - silently update
-              newWorker.postMessage({ type: 'SKIP_WAITING' });
+          reg.installing?.addEventListener('statechange', function() {
+            if (this.state === 'installed' && navigator.serviceWorker.controller) {
+              this.postMessage({ type: 'SKIP_WAITING' });
             }
           });
         });
       })
-      .catch((err) => console.log('[JARVIS SW] Registration failed:', err));
+      .catch(err => console.log('[JARVIS SW] Failed:', err));
 
-    // Register periodic background sync
-    navigator.serviceWorker.ready.then((reg) => {
-      // @ts-ignore
-      if ('periodicSync' in reg) {
-        // @ts-ignore
-        reg.periodicSync.register('update-weather', { minInterval: 60 * 60 * 1000 }) // 1 hour
-          .catch(() => {}); // Ignore if not permitted
-        // @ts-ignore
-        reg.periodicSync.register('check-reminders', { minInterval: 15 * 60 * 1000 }) // 15 min
-          .catch(() => {});
-      }
-    }).catch(() => {});
-
-    // Listen for SW messages
     navigator.serviceWorker.addEventListener('message', (event) => {
-      if (event.data?.type === 'NOTIFICATION_CLICK') {
-        // Handle notification click
-        window.location.href = event.data.url || '/';
-      }
       if (event.data?.type === 'CHECK_REMINDERS') {
-        // Check localStorage for pending reminders
         try {
-          const reminders = JSON.parse(localStorage.getItem('jarvis_reminders') || '[]');
+          const reminders = JSON.parse(localStorage.getItem('jarvis_reminders_list') || '[]');
           const now = Date.now();
-          const due = reminders.filter((r: any) => r.time <= now);
-          if (due.length > 0) {
-            due.forEach((r: any) => {
-              new Notification('⏰ JARVIS Reminder', { body: r.text, icon: '/icons/icon-192.png' });
-            });
-            localStorage.setItem('jarvis_reminders',
-              JSON.stringify(reminders.filter((r: any) => r.time > now)));
+          const due = reminders.filter((r: any) => {
+            const [h, m] = (r.time || '00:00').split(':').map(Number);
+            const t = new Date(); t.setHours(h, m, 0, 0);
+            return Math.abs(t.getTime() - now) < 60000;
+          });
+          if (due.length > 0 && 'Notification' in window && Notification.permission === 'granted') {
+            due.forEach((r: any) => new Notification('⏰ JARVIS', { body: r.text, icon: '/icons/icon-192.png' }));
           }
         } catch {}
       }
     });
 
+    // Request notification permission
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
   }, []);
 
-  return null; // Invisible component
+  return null;
 }
