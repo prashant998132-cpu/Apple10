@@ -11,12 +11,13 @@ interface Props {
   onSpeak: () => void;
   onCopy: () => void;
   onPin: () => void;
+  onRegenerate?: () => void;
 }
 
 const MODE_COLORS: Record<string, string> = { think: '#a78bfa', deep: '#34d399', auto: '#60a5fa', flash: '#facc15' };
-const MODE_ICONS: Record<string, string> = { think: '🧠', deep: '🔬', auto: '🤖', flash: '⚡' };
+const MODE_ICONS: Record<string, string>  = { think: '🧠', deep: '🔬', auto: '🤖', flash: '⚡' };
 
-export default function MessageBubble({ message: msg, onLike, onSpeak, onCopy, onPin }: Props) {
+export default function MessageBubble({ message: msg, onLike, onSpeak, onCopy, onPin, onRegenerate }: Props) {
   const [showActions, setShowActions] = useState(false);
   const [copied, setCopied] = useState(false);
   const touchStartX = useRef(0);
@@ -89,7 +90,7 @@ export default function MessageBubble({ message: msg, onLike, onSpeak, onCopy, o
                 h3: ({ children }) => <h3 style={{ fontSize: 13.5, fontWeight: 700, color: '#e2e8f0', margin: '3px 0 1px' }}>{children}</h3>,
                 strong: ({ children }) => <strong style={{ color: '#fff', fontWeight: 700 }}>{children}</strong>,
                 blockquote: ({ children }) => <blockquote style={{ borderLeft: '2px solid rgba(99,102,241,0.5)', paddingLeft: 8, margin: '4px 0', color: '#94a3b8', fontStyle: 'italic' }}>{children}</blockquote>,
-                a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer" style={{ color: '#60a5fa', textDecoration: 'underline', textDecorationColor: 'rgba(96,165,250,0.4)' }}>{children}</a>,
+                a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer" style={{ color: '#60a5fa', textDecoration: 'underline' }}>{children}</a>,
                 hr: () => <hr style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.07)', margin: '6px 0' }} />,
               }}>{msg.content}</ReactMarkdown>
             </div>
@@ -108,14 +109,25 @@ export default function MessageBubble({ message: msg, onLike, onSpeak, onCopy, o
             </div>
           )}
 
-          {/* Time + Actions — Copy always visible */}
+          {/* Time + Actions — Copy always visible + Regenerate */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 5 }}>
             <span style={{ fontSize: 9, color: 'rgba(148,163,184,0.3)' }}>{timeStr}</span>
             <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+              {/* Copy — always visible */}
               <button onClick={e => { e.stopPropagation(); handleCopy(); }}
                 style={{ fontSize: 11, padding: '2px 8px', borderRadius: 6, background: copied ? 'rgba(74,222,128,0.12)' : 'rgba(255,255,255,0.05)', border: `1px solid ${copied ? 'rgba(74,222,128,0.3)' : 'rgba(255,255,255,0.08)'}`, cursor: 'pointer', color: copied ? '#4ade80' : '#6b7280', transition: 'all 0.2s' }}>
                 {copied ? '✅' : '📋'}
               </button>
+
+              {/* Regenerate — always visible for AI messages */}
+              {onRegenerate && (
+                <button onClick={e => { e.stopPropagation(); onRegenerate(); }}
+                  title="Dobara generate karo"
+                  style={{ fontSize: 11, padding: '2px 8px', borderRadius: 6, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer', color: '#6b7280', transition: 'all 0.2s' }}>
+                  🔄
+                </button>
+              )}
+
               {showActions && (
                 <>
                   <button onClick={e => { e.stopPropagation(); onSpeak(); setShowActions(false); }} style={{ fontSize: 11, padding: '2px 6px', borderRadius: 6, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer' }}>🔊</button>
