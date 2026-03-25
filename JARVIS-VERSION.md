@@ -1,17 +1,14 @@
-# JARVIS v38 — Mega Update
+# JARVIS v40 — Smart Improvements
 
 ## New Features:
-- 🤖 Claude API (Anthropic Haiku) added — Most powerful AI
-- 📋 Copy button always visible on every message
-- 🧠 Permanent Memory — 200 facts + IndexedDB backup (never forgets)
-- 🎨 New Image Generator page — 6 styles, 4 sizes, save to device
-- 🎤 WhatsApp-style Voice Note Recorder component
-- 🧭 Better BottomNav — Image & Tools tabs added
+- ✅ Naam fix — hardcoded "Jons Bhai" → profile ka actual naam everywhere
+- 🔍 Chat Search — messages mein instantly dhundho
+- 📥 Chat Export — poori conversation .txt mein download karo
+- 🔄 Regenerate button — AI response dobara generate karo
+- 🌙/☀️ Dark/Light quick toggle — TopBar mein ek click
 
-## Updated Files:
-- app/api/stream/route.ts — Claude Haiku added to all modes
-- components/BottomNav.tsx — 5 tabs now
-- components/chat/MessageBubble.tsx — Always-visible copy button
-- lib/crossSessionMemory.ts — 200 facts + IndexedDB permanent storage
-- app/image/page.tsx — New dedicated image generation page
-- components/VoiceNoteRecorder.tsx — New component
+## Files Updated:
+- components/chat/ChatInterface.tsx — naam fix + search + export
+- components/TopBar.tsx — theme toggle + search/export buttons
+- components/chat/MessageBubble.tsx — regenerate button
+- lib/offlineAI.ts — dynamic naam from profile
