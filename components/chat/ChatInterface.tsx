@@ -257,7 +257,19 @@ export default function ChatInterface() {
     const memories = getRelevantMemories(userText, 6);
     const emotion = detectEmotion(userText);
     const mode = detectThinkMode(userText, thinkMode);
-    const system = getSystemPrompt(personality, profile, memories, emotion, new Date().getHours());
+
+    // Run autonomous tools if needed (weather, crypto, news etc)
+    let toolData: string[] = [];
+    if (queryNeedsTools(userText)) {
+      setToolsRunning(true);
+      try {
+        const toolResult = await runAutonomousTools(userText);
+        if (toolResult) toolData = [toolResult];
+      } catch {}
+      setToolsRunning(false);
+    }
+
+    const system = getSystemPrompt(personality, profile, memories, emotion, new Date().getHours(), toolData.length > 0 ? toolData : undefined);
 
     try {
       const ctrl = new AbortController();
