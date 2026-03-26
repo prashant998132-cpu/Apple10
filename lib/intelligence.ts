@@ -71,8 +71,10 @@ export function getSystemPrompt(
     bored: 'User bored hai — engaging, interesting content de.',
   };
 
-  const locationStr = profile?.location ? `, ${profile.location}` : '';
-  let sys = `${p}\n\nUser ka naam: ${name}. Abhi ${timeCtx} hai, IST${locationStr}.`;
+  const locationStr = profile?.location ? ', ' + profile.location : '';
+  const goalStr = profile?.goal ? '\n- Goal: ' + profile.goal : '';
+  const ageStr = profile?.age ? '\n- Age: ' + profile.age + ' saal' : '';
+  let sys = p + '\n\nUser info: Naam: ' + name + '. ' + timeCtx + ' IST' + locationStr + '.' + goalStr + ageStr;
 
   if (emotion !== 'neutral' && emotionCtx[emotion]) sys += `\n\nContext: ${emotionCtx[emotion]}`;
 
