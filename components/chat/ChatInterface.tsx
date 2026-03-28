@@ -13,6 +13,7 @@ import MessageBubble from './MessageBubble';
 import InputBar from './InputBar';
 import ModeBar from './ModeBar';
 import ThinkBubble from './ThinkBubble';
+import FollowUpChips from './FollowUpChips';
 import CommandPalette from '@/components/CommandPalette';
 import ChatHistorySidebar from '@/components/ChatHistorySidebar';
 import TopBar from '@/components/TopBar';
@@ -257,19 +258,7 @@ export default function ChatInterface() {
     const memories = getRelevantMemories(userText, 6);
     const emotion = detectEmotion(userText);
     const mode = detectThinkMode(userText, thinkMode);
-
-    // Run autonomous tools if needed (weather, crypto, news etc)
-    let toolData: string[] = [];
-    if (queryNeedsTools(userText)) {
-      setToolsRunning(true);
-      try {
-        const toolResult = await runAutonomousTools(userText);
-        if (toolResult) toolData = [toolResult];
-      } catch {}
-      setToolsRunning(false);
-    }
-
-    const system = getSystemPrompt(personality, profile, memories, emotion, new Date().getHours(), toolData.length > 0 ? toolData : undefined);
+    const system = getSystemPrompt(personality, profile, memories, emotion, new Date().getHours());
 
     try {
       const ctrl = new AbortController();
@@ -397,6 +386,7 @@ export default function ChatInterface() {
 
       <div className="flex-shrink-0 px-4 pb-5 pt-1 bg-gradient-to-t from-[#0a0b0f] via-[#0a0b0f] to-transparent">
         <div className="max-w-2xl mx-auto">
+          {!loading && (() => { const last = [...messages].reverse().find(m => m.role === "assistant" && m.id !== "welcome"); return last ? <FollowUpChips lastMessage={last} onSelect={t => sendMessage(t)} /> : null; })()}
           <InputBar
             onVisionResult={handleVisionResult}
             value={input} onChange={setInput}
