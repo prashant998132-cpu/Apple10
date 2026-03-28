@@ -98,12 +98,12 @@ export function keywordFallback(query: string): string {
   const hour = new Date().getHours();
   const greet = hour < 12 ? 'Subah' : hour < 17 ? 'Dopahar' : hour < 21 ? 'Shaam' : 'Raat';
 
-  if (q.match(/hello|hi|hey|namaste|hii/)) return `${greet} Jons Bhai! 👋 Main JARVIS hoon — kya help chahiye?`;
+  if (q.match(/hello|hi|hey|namaste|hii/)) const n = typeof window !== 'undefined' ? (()=>{ try { const p = localStorage.getItem('jarvis_profile'); if(p) return JSON.parse(p).name||'Bhai'; } catch {} return 'Bhai'; })() : 'Bhai'; return `${greet} ${n}! 👋 Main JARVIS hoon — kya help chahiye?`;
   if (q.match(/how are|kaise ho|kaisa/)) return `Main ekdum mast hoon Bhai! Tum batao — kya chal raha hai? 😊`;
   if (q.match(/joke|funny|mazak/)) return `😂 Ek baar ek programmer ne apni girlfriend se kaha: "Main tumse pyaar karta hoon."\nGirlfriend: "Yeh prove karo!"\nProgrammer: "It's true, I have no bugs in my feelings."`;
-  if (q.match(/motivation|inspire/)) return `💪 "Haar woh nahi jab tum gir jaate ho,\nHaar woh hai jab tum uthne se inkaar kar dete ho."\n\nChalo Jons Bhai — uthke chal!`;
+  if (q.match(/motivation|inspire/)) return `💪 "Haar woh nahi jab tum gir jaate ho,\nHaar woh hai jab tum uthne se inkaar kar dete ho."\n\nChalte raho! 🚀`;
   if (q.match(/time|kitne baje/)) return `⏰ Abhi ${new Date().toLocaleTimeString('hi-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })} ho rahi hai (IST)`;
-  if (q.match(/thanks|shukriya|dhanyawad/)) return `Koi baat nahi Jons Bhai! Sada tumhari seva mein 🙏`;
+  if (q.match(/thanks|shukriya|dhanyawad/)) return `Koi baat nahi! Sada tumhari seva mein 🙏`;
   if (q.match(/bye|alvida|baad mein/)) return `Alvida Bhai! Agar kuch chahiye toh bulana 👋`;
 
   return `🤔 Internet lagta hai slow hai — but main hoon! "${query}" ke baare mein offline mode mein answer dene ki koshish kar raha hoon. Thodi der mein internet aane par better jawab milega.`;
