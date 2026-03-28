@@ -7,12 +7,14 @@ interface Props {
 }
 
 const SUGGESTIONS = [
-  { icon: '🌤️', text: 'Aaj ka mausam kaisa hai Maihar mein?' },
-  { icon: '📚', text: 'Physics ke Newton laws explain karo' },
-  { icon: '🧬', text: 'NEET Biology top 10 topics batao' },
-  { icon: '⚗️', text: 'Chemistry ke organic reactions summarize karo' },
-  { icon: '🧠', text: 'Ek concept simple mein samjhao' },
-  { icon: '🎯', text: 'Aaj ka study plan bana do NEET ke liye' },
+  { icon: '🌤️', text: 'Aaj ka mausam kaisa hai?' },
+  { icon: '💰', text: 'Bitcoin aur gold ka aaj ka rate batao' },
+  { icon: '📰', text: 'Aaj ki top news kya hai?' },
+  { icon: '💪', text: 'Mujhe aaj ke liye motivate karo' },
+  { icon: '🤖', text: 'Kya kar sakta hai tu?' },
+  { icon: '🎯', text: 'Aaj ka productivity plan bana do' },
+  { icon: '💡', text: 'Koi interesting fact batao' },
+  { icon: '🧠', text: 'Kuch naya sikhao aaj' },
 ];
 
 function getGreet() {
@@ -31,20 +33,12 @@ function formatDate() {
   return new Date().toLocaleDateString('hi-IN', { weekday: 'long', day: 'numeric', month: 'long' });
 }
 
-// NEET 2026 countdown — typically 1st Sunday of May
-function getNEETCountdown() {
-  const neet = new Date('2026-05-03T00:00:00+05:30'); // NEET 2026 approx date
-  const now = new Date();
-  const diff = neet.getTime() - now.getTime();
-  if (diff <= 0) return null;
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-  return days;
-}
+// NEET countdown removed
 
 export default function HomeScreen({ name, onSend }: Props) {
   const [time, setTime] = useState(formatTime());
   const [weather, setWeather] = useState<{ temp: number; icon: string; desc: string } | null>(null);
-  const [neetDays, setNeetDays] = useState<number | null>(null);
+
   const [streak, setStreak] = useState(0);
   const [xp, setXp] = useState(0);
   const greet = getGreet();
@@ -55,7 +49,7 @@ export default function HomeScreen({ name, onSend }: Props) {
   }, []);
 
   useEffect(() => {
-    setNeetDays(getNEETCountdown());
+
     // Load streak + XP from localStorage
     try {
       const profile = JSON.parse(localStorage.getItem('jarvis-db-profile') || '{}');
