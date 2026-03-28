@@ -1,6 +1,6 @@
 {
   "name": "jarvis-ai",
-  "version": "42.0.0",
+  "version": "43.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
