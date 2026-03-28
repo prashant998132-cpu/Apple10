@@ -22,16 +22,16 @@ export default function BottomNav() {
   ];
 
   const MORE_PAGES = [
+    { path: '/habits',      icon: '🔥', label: 'Habits' },
+    { path: '/reader',      icon: '📄', label: 'Reader' },
     { path: '/notes',       icon: '📝', label: 'Notes' },
-    { path: '/stats',       icon: '⚡', label: 'Stats' },
+    { path: '/stats',       icon: '📈', label: 'Stats' },
     { path: '/mitra',       icon: '🤝', label: 'Mitra' },
     { path: '/vault',       icon: '🗄️', label: 'Vault' },
-    { path: '/target',      icon: '🎯', label: 'Goals' },
+    { path: '/neet',        icon: '🎓', label: 'NEET' },
     { path: '/india',       icon: '🇮🇳', label: 'India' },
-    { path: '/mitra',       icon: '🤖', label: 'AI Chat' },
-    { path: '/permissions', icon: '🔑', label: 'Access' },
+    { path: '/target',      icon: '🎯', label: 'Goals' },
     { path: '/settings',    icon: '⚙️', label: 'Settings' },
-    { path: '/dashboard',   icon: '📈', label: 'Markets' },
   ];
 
   const isMoreActive = MORE_PAGES.some(p => p.path === pathname);
