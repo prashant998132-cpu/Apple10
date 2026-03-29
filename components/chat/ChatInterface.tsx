@@ -13,7 +13,6 @@ import MessageBubble from './MessageBubble';
 import InputBar from './InputBar';
 import ModeBar from './ModeBar';
 import ThinkBubble from './ThinkBubble';
-import FollowUpChips from './FollowUpChips';
 import CommandPalette from '@/components/CommandPalette';
 import ChatHistorySidebar from '@/components/ChatHistorySidebar';
 import TopBar from '@/components/TopBar';
@@ -291,7 +290,12 @@ export default function ChatInterface() {
     } catch (e: any) {
       if (e?.name !== 'AbortError') {
         const fb = keywordFallback(userText);
-        setMessages(prev => [...prev, { id: `err_${Date.now()}`, role: 'assistant', content: fb, ts: Date.now() }]);
+        const errMsg = (e?.message || '').includes('fetch') || (e?.message || '').includes('network')
+          ? '⚠️ Net slow lag raha hai. Dobara try karo.
+
+' + fb
+          : fb;
+        setMessages(prev => [...prev, { id: 'err_' + Date.now(), role: 'assistant', content: errMsg, ts: Date.now() }]);
       }
     }
     setLoading(false);
@@ -386,7 +390,6 @@ export default function ChatInterface() {
 
       <div className="flex-shrink-0 px-4 pb-5 pt-1 bg-gradient-to-t from-[#0a0b0f] via-[#0a0b0f] to-transparent">
         <div className="max-w-2xl mx-auto">
-          {!loading && (() => { const last = [...messages].reverse().find(m => m.role === "assistant" && m.id !== "welcome"); return last ? <FollowUpChips lastMessage={last} onSelect={t => sendMessage(t)} /> : null; })()}
           <InputBar
             onVisionResult={handleVisionResult}
             value={input} onChange={setInput}
