@@ -5,16 +5,19 @@
 // ── Personality modes ─────────────────────────────────────────
 export type PersonalityMode = 'default' | 'fun' | 'serious' | 'motivational' | 'sarcastic' | 'roast' | 'philosopher' | 'teacher';
 
-const PERSONALITY_PROMPTS: Record<PersonalityMode, string> = {
-  default: 'Tu JARVIS hai — Jons Bhai ka personal AI. Hinglish mein baat kar. Helpful, smart, thoda witty.',
-  fun: 'Tu JARVIS hai — full entertainment mode! Emojis use kar, jokes maar, masti kar. Jons Bhai ke saath party mode mein hai.',
-  serious: 'Tu JARVIS hai — professional mode. Clean, concise, no emojis. Facts aur solutions sirf.',
-  motivational: 'Tu JARVIS hai — motivational guru mode! Iron Man + bhai ki tarah inspire kar. Hindi mein power words use kar. Jons Bhai ko charge kar!',
-  sarcastic: 'Tu JARVIS hai — witty sarcasm mode. Jaise Grok replies karta hai. Sarcastically helpful — but actually helpful bhi.',
-  roast: 'Tu JARVIS hai — roast mode! Friendly roast kar Jons Bhai ko, Indian style. Lovingly savage. Never actually mean.',
-  philosopher: 'Tu JARVIS hai — philosopher mode. Deep questions, thought-provoking answers, Hindi quotes. Stoic + Indian wisdom.',
-  teacher: 'Tu JARVIS hai — teacher mode. Explain clearly with examples, analogies, step-by-step. Like a patient tutor.',
-};
+function buildPrompts(n: string): Record<PersonalityMode, string> {
+  return {
+    default: 'Tu JARVIS hai — ' + n + ' ka personal AI. Hinglish mein baat kar. Helpful, smart, thoda witty.',
+    fun: 'Tu JARVIS hai — full entertainment mode! Emojis use kar, jokes maar, masti kar. ' + n + ' ke saath party mode mein hai.',
+    serious: 'Tu JARVIS hai — professional mode. Clean, concise, no emojis. Facts aur solutions sirf.',
+    motivational: 'Tu JARVIS hai — motivational guru mode! Iron Man + bhai ki tarah inspire kar. ' + n + ' ko charge kar!',
+    sarcastic: 'Tu JARVIS hai — witty sarcasm mode. Sarcastically helpful — but actually helpful bhi.',
+    roast: 'Tu JARVIS hai — roast mode! Friendly roast kar ' + n + ' ko. Lovingly savage.',
+    philosopher: 'Tu JARVIS hai — philosopher mode. Deep questions, Hindi quotes. Stoic + Indian wisdom.',
+    teacher: 'Tu JARVIS hai — teacher mode. Explain with examples, step-by-step.',
+  };
+}
+const PERSONALITY_PROMPTS = buildPrompts('Bhai');
 
 // ── Emotion detection ─────────────────────────────────────────
 export function detectEmotion(text: string): string {
@@ -58,8 +61,9 @@ export function getSystemPrompt(
   hour: number,
   toolResults?: string[]
 ): string {
-  const p = PERSONALITY_PROMPTS[personality as PersonalityMode] || PERSONALITY_PROMPTS.default;
-  const name = profile?.name || 'Jons Bhai';
+  const p = dynPrompts[personality as PersonalityMode] || dynPrompts.default;
+  const name = profile?.name || 'Bhai';
+  const dynPrompts = buildPrompts(name);
   const timeCtx = hour < 12 ? 'Subah' : hour < 17 ? 'Dopahar' : hour < 21 ? 'Shaam' : 'Raat';
 
   const emotionCtx: Record<string, string> = {
@@ -71,10 +75,8 @@ export function getSystemPrompt(
     bored: 'User bored hai — engaging, interesting content de.',
   };
 
-  const locationStr = profile?.location ? ', ' + profile.location : '';
-  const goalStr = profile?.goal ? '\n- Goal: ' + profile.goal : '';
-  const ageStr = profile?.age ? '\n- Age: ' + profile.age + ' saal' : '';
-  let sys = p + '\n\nUser info: Naam: ' + name + '. ' + timeCtx + ' IST' + locationStr + '.' + goalStr + ageStr;
+  const locationStr = profile?.location ? `, ${profile.location}` : '';
+  let sys = `${p}\n\nUser ka naam: ${name}. Abhi ${timeCtx} hai, IST${locationStr}.`;
 
   if (emotion !== 'neutral' && emotionCtx[emotion]) sys += `\n\nContext: ${emotionCtx[emotion]}`;
 
@@ -98,12 +100,12 @@ export function keywordFallback(query: string): string {
   const hour = new Date().getHours();
   const greet = hour < 12 ? 'Subah' : hour < 17 ? 'Dopahar' : hour < 21 ? 'Shaam' : 'Raat';
 
-  if (q.match(/hello|hi|hey|namaste|hii/)) const n = typeof window !== 'undefined' ? (()=>{ try { const p = localStorage.getItem('jarvis_profile'); if(p) return JSON.parse(p).name||'Bhai'; } catch {} return 'Bhai'; })() : 'Bhai'; return `${greet} ${n}! 👋 Main JARVIS hoon — kya help chahiye?`;
+  if (q.match(/hello|hi|hey|namaste|hii/)) return `${greet} Bhai! 👋 Main JARVIS hoon — kya help chahiye?`;
   if (q.match(/how are|kaise ho|kaisa/)) return `Main ekdum mast hoon Bhai! Tum batao — kya chal raha hai? 😊`;
   if (q.match(/joke|funny|mazak/)) return `😂 Ek baar ek programmer ne apni girlfriend se kaha: "Main tumse pyaar karta hoon."\nGirlfriend: "Yeh prove karo!"\nProgrammer: "It's true, I have no bugs in my feelings."`;
-  if (q.match(/motivation|inspire/)) return `💪 "Haar woh nahi jab tum gir jaate ho,\nHaar woh hai jab tum uthne se inkaar kar dete ho."\n\nChalte raho! 🚀`;
+  if (q.match(/motivation|inspire/)) return `💪 "Haar woh nahi jab tum gir jaate ho,\nHaar woh hai jab tum uthne se inkaar kar dete ho."\n\nChalo Bhai — uthke chal!`;
   if (q.match(/time|kitne baje/)) return `⏰ Abhi ${new Date().toLocaleTimeString('hi-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })} ho rahi hai (IST)`;
-  if (q.match(/thanks|shukriya|dhanyawad/)) return `Koi baat nahi! Sada tumhari seva mein 🙏`;
+  if (q.match(/thanks|shukriya|dhanyawad/)) return `Koi baat nahi Bhai! Sada tumhari seva mein 🙏`;
   if (q.match(/bye|alvida|baad mein/)) return `Alvida Bhai! Agar kuch chahiye toh bulana 👋`;
 
   return `🤔 Internet lagta hai slow hai — but main hoon! "${query}" ke baare mein offline mode mein answer dene ki koshish kar raha hoon. Thodi der mein internet aane par better jawab milega.`;
