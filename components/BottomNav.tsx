@@ -23,13 +23,15 @@ export default function BottomNav() {
 
   // Clean — no duplicates
   const MORE_PAGES = [
+    { path: '/habits',      icon: '🔥', label: 'Habits' },
+    { path: '/reader',      icon: '📄', label: 'Reader' },
     { path: '/notes',       icon: '📝', label: 'Notes' },
-    { path: '/stats',       icon: '⚡', label: 'Stats' },
+    { path: '/stats',       icon: '📈', label: 'Stats' },
     { path: '/mitra',       icon: '🤝', label: 'Mitra' },
     { path: '/vault',       icon: '🗄️', label: 'Vault' },
+    { path: '/neet',        icon: '🎓', label: 'NEET' },
     { path: '/target',      icon: '🎯', label: 'Goals' },
     { path: '/india',       icon: '🇮🇳', label: 'India' },
-    { path: '/permissions', icon: '🔑', label: 'Access' },
     { path: '/settings',    icon: '⚙️', label: 'Settings' },
   ];
 
