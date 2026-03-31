@@ -25,6 +25,7 @@ function getGreet() {
   if (h < 21) return { text: 'Shaam ki Salaam', emoji: '🌆' };
   return { text: 'Raat ki Salaam', emoji: '🌙' };
 }
+
 function formatTime() {
   return new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
 }
@@ -32,11 +33,14 @@ function formatDate() {
   return new Date().toLocaleDateString('hi-IN', { weekday: 'long', day: 'numeric', month: 'long' });
 }
 
+// NEET countdown removed
+
 export default function HomeScreen({ name, onSend }: Props) {
-  const [time, setTime]       = useState(formatTime());
+  const [time, setTime] = useState(formatTime());
   const [weather, setWeather] = useState<{ temp: number; icon: string; desc: string } | null>(null);
-  const [streak, setStreak]   = useState(0);
-  const [xp, setXp]           = useState(0);
+
+  const [streak, setStreak] = useState(0);
+  const [xp, setXp] = useState(0);
   const greet = getGreet();
 
   useEffect(() => {
@@ -45,27 +49,31 @@ export default function HomeScreen({ name, onSend }: Props) {
   }, []);
 
   useEffect(() => {
+
+    // Load streak + XP from localStorage
     try {
       const profile = JSON.parse(localStorage.getItem('jarvis-db-profile') || '{}');
       setStreak(profile?.streak || 0);
       setXp(profile?.xp || 0);
     } catch {}
+    // Weather — Maihar coords
     fetch('https://api.open-meteo.com/v1/forecast?latitude=24.53&longitude=81.3&current=temperature_2m,weathercode&timezone=Asia/Kolkata')
       .then(r => r.json())
       .then(d => {
         const c = d.current;
+        const wc = c.weathercode;
         const WMO: Record<number, [string, string]> = {
           0: ['☀️', 'Clear'], 1: ['🌤️', 'Mostly clear'], 2: ['⛅', 'Partly cloudy'],
           3: ['☁️', 'Overcast'], 45: ['🌫️', 'Foggy'], 48: ['🌫️', 'Foggy'],
           51: ['🌦️', 'Drizzle'], 61: ['🌧️', 'Rain'], 63: ['🌧️', 'Heavy rain'],
           71: ['❄️', 'Snow'], 80: ['🌦️', 'Showers'], 95: ['⛈️', 'Thunderstorm'],
         };
-        const [icon, desc] = WMO[c.weathercode] || ['🌡️', 'Unknown'];
+        const [icon, desc] = WMO[wc] || ['🌡️', 'Unknown'];
         setWeather({ temp: Math.round(c.temperature_2m), icon, desc });
       }).catch(() => {});
   }, []);
 
-  const level      = Math.floor(xp / 100) + 1;
+  const level = Math.floor(xp / 100) + 1;
   const xpProgress = xp % 100;
 
   return (
@@ -99,8 +107,7 @@ export default function HomeScreen({ name, onSend }: Props) {
           ) : <div style={{ fontSize: 11, color: '#374151' }}>☁️ Loading...</div>}
         </div>
       </div>
-
-      {/* XP + Streak */}
+{/* XP + Streak */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
         <div style={{ background: 'rgba(15,23,42,0.9)', border: '1px solid rgba(255,215,0,0.15)', borderRadius: 14, padding: '10px 14px' }}>
           <div style={{ fontSize: 10, color: '#fbbf24', fontWeight: 600, marginBottom: 4 }}>⚡ Level {level}</div>
