@@ -84,7 +84,7 @@ async function* streamClaude(messages: any[], system: string, key: string): Asyn
   const r = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
-    body: JSON.stringify({ model: 'claude-haiku-4-5', max_tokens: 1500, system: system || 'You are JARVIS.', messages: msgs, stream: true }),
+    body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 3000, system: system || 'You are JARVIS.', messages: msgs, stream: true }),
     signal: AbortSignal.timeout(25000),
   });
   if (!r.ok) throw new Error(`Claude ${r.status}`);
