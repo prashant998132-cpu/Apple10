@@ -49,7 +49,10 @@ async function getMorningDigest(): Promise<string> {
 
   // Weather
   try {
-    const w = await fetch('https://api.open-meteo.com/v1/forecast?latitude=24.53&longitude=81.3&current=temperature_2m,weathercode,windspeed_10m&timezone=Asia/Kolkata',{signal:AbortSignal.timeout(5000)});
+    const TG_LAT = process.env.USER_LAT || '24.53';
+    const TG_LON = process.env.USER_LON || '81.3';
+    const TG_CITY = process.env.USER_CITY || 'Aapke Shehar';
+    const w = await fetch('https://api.open-meteo.com/v1/forecast?latitude='+TG_LAT+'&longitude='+TG_LON+'&current=temperature_2m,weathercode,windspeed_10m&timezone=auto',{signal:AbortSignal.timeout(5000)});
     if(w.ok){ const wd=await w.json(); const c=wd.current; const wc=(code:number)=>code<=1?'☀️ Saaf':code<=3?'⛅ Badal':code<=67?'🌧️ Baarish':'⛈️ Toofan'; digest+=`🌤️ *Mausam:* ${Math.round(c.temperature_2m)}°C — ${wc(c.weathercode)} | Hawa: ${c.windspeed_10m} km/h\n\n`; }
   } catch {}
 
