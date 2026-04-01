@@ -13,7 +13,7 @@ function WeatherCard({ data }: { data: any }) {
   const [icon, desc] = codes[wc?.weathercode] || ['🌡️', 'Weather'];
   return (
     <div style={{ background: 'linear-gradient(135deg,#1e3a5f,#0f2040)', borderRadius: 12, padding: '12px 14px', marginTop: 8 }}>
-      <div style={{ fontSize: 10, color: '#60a5fa', fontWeight: 700, marginBottom: 6, textTransform: 'uppercase' }}>📍 Maihar, MP</div>
+      <div style={{ fontSize: 10, color: '#60a5fa', fontWeight: 700, marginBottom: 6, textTransform: 'uppercase' }}>📍 {typeof window !== 'undefined' ? (() => { try { const l = JSON.parse(localStorage.getItem('jarvis_location') || '{}'); const p = JSON.parse(localStorage.getItem('jarvis_profile') || '{}'); return l.city || p.location?.split(',')[0] || 'Aapka Shehar'; } catch { return 'Aapka Shehar'; } })() : 'Aapka Shehar'}</div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <div style={{ fontSize: 38 }}>{icon}</div>
         <div>
