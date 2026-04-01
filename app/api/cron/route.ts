@@ -22,11 +22,14 @@ export async function GET(req: NextRequest) {
 
   // Weather
   try {
-    const w = await fetch('https://api.open-meteo.com/v1/forecast?latitude=24.53&longitude=81.3&current=temperature_2m,weathercode,windspeed_10m,relative_humidity_2m&timezone=Asia/Kolkata&forecast_days=1',{signal:AbortSignal.timeout(5000)});
+    const LAT  = process.env.USER_LAT  || '24.53';
+    const LON  = process.env.USER_LON  || '81.3';
+    const CITY = process.env.USER_CITY || 'Aapke Shehar';
+    const w = await fetch('https://api.open-meteo.com/v1/forecast?latitude='+LAT+'&longitude='+LON+'&current=temperature_2m,weathercode,windspeed_10m,relative_humidity_2m&timezone=auto&forecast_days=1',{signal:AbortSignal.timeout(5000)});
     if(w.ok){
       const d=await w.json(); const c=d.current;
       const wc=(n:number)=>n<=1?'☀️ Saaf':n<=3?'⛅ Badal':n<=67?'🌧️ Baarish':'⛈️ Toofan';
-      digest+=`🌤️ *Aaj ka Mausam (Maihar):*\n${Math.round(c.temperature_2m)}°C | ${wc(c.weathercode)} | Humidity: ${c.relative_humidity_2m}%\n\n`;
+      digest+=`🌤️ *Aaj ka Mausam (${CITY}):*\n${Math.round(c.temperature_2m)}°C | ${wc(c.weathercode)} | Humidity: ${c.relative_humidity_2m}%\n\n`;
     }
   } catch {}
 
