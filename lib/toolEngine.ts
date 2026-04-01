@@ -149,17 +149,25 @@ function cacheSet(key: string, data: string) {
 
 // WEATHER — Open-Meteo (NO KEY, free forever)
 async function toolWeather(query: string): Promise<string> {
-  const cacheKey = `weather_rewa`;
+  // Get location: localStorage first (GPS), then ip-api fallback, then Maihar default
+  let lat = 24.5362, lon = 81.3003, city = 'Maihar';
+  try {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('jarvis_location');
+      if (saved) {
+        const sl = JSON.parse(saved);
+        if (sl.lat) { lat = sl.lat; lon = sl.lon; city = sl.city || city; }
+      } else {
+        // Fallback: ip-api
+        const loc = await fetch('http://ip-api.com/json/?fields=lat,lon,city,regionName', { signal: AbortSignal.timeout(3000) });
+        const ld = await loc.json();
+        if (ld.lat) { lat = ld.lat; lon = ld.lon; city = ld.city || city; }
+      }
+    }
+  } catch {}
+  const cacheKey = `weather_${city.toLowerCase().replace(/\s/g,'_')}`;
   const cached = cacheGet(cacheKey);
   if (cached) return cached + ' *(cached)*';
-
-  // Get location from ip-api (no key)
-  let lat = 24.54, lon = 81.30, city = 'Rewa';
-  try {
-    const loc = await fetch('http://ip-api.com/json/?fields=lat,lon,city', { signal: AbortSignal.timeout(3000) });
-    const ld = await loc.json();
-    if (ld.lat) { lat = ld.lat; lon = ld.lon; city = ld.city || 'Rewa'; }
-  } catch {}
 
   const r = await fetch(
     `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,precipitation,wind_speed_10m,weathercode&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=Asia%2FKolkata&forecast_days=3`,
@@ -572,7 +580,15 @@ export async function getMorningBriefing(): Promise<string> {
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Subah' : hour < 17 ? 'Dopahar' : hour < 21 ? 'Shaam' : 'Raat';
-  const parts: string[] = [`**🌅 ${greeting} mubarak, Jons Bhai!**\n`];
+  // Get name dynamically from profile
+  let userName = 'Bhai';
+  try {
+    if (typeof window !== 'undefined') {
+      const prof = JSON.parse(localStorage.getItem('jarvis_profile') || '{}');
+      userName = prof.name || 'Bhai';
+    }
+  } catch {}
+  const parts: string[] = [`**🌅 ${greeting} mubarak, ${userName}!**\n`];
 
   // Parallel fetch weather + holiday + quote + joke
   const [weatherRes, holidayRes, quoteRes, jokeRes] = await Promise.allSettled([
