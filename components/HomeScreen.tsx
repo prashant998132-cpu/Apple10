@@ -56,8 +56,17 @@ export default function HomeScreen({ name, onSend }: Props) {
       setStreak(profile?.streak || 0);
       setXp(profile?.xp || 0);
     } catch {}
-    // Weather — Maihar coords
-    fetch('https://api.open-meteo.com/v1/forecast?latitude=24.53&longitude=81.3&current=temperature_2m,weathercode&timezone=Asia/Kolkata')
+    // Weather — location from localStorage (fallback: Maihar)
+    (() => {
+        try {
+          const loc = JSON.parse(localStorage.getItem('jarvis_location') || '{}');
+          const lat = loc.lat || 24.53;
+          const lon = loc.lon || 81.3;
+          return fetch('https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon + '&current=temperature_2m,weathercode&timezone=auto');
+        } catch {
+          return fetch('https://api.open-meteo.com/v1/forecast?latitude=24.53&longitude=81.3&current=temperature_2m,weathercode&timezone=Asia/Kolkata');
+        }
+      })()
       .then(r => r.json())
       .then(d => {
         const c = d.current;
@@ -101,13 +110,33 @@ export default function HomeScreen({ name, onSend }: Props) {
               <div style={{ fontSize: 28 }}>{weather.icon}</div>
               <div>
                 <div style={{ fontSize: 22, fontWeight: 900, color: '#f1f5f9' }}>{weather.temp}°C</div>
-                <div style={{ fontSize: 10, color: '#475569' }}>Maihar, MP</div>
+                <div style={{ fontSize: 10, color: '#475569' }}>{(() => { try { const l = JSON.parse(localStorage.getItem('jarvis_location') || '{}'); const p = JSON.parse(localStorage.getItem('jarvis_profile') || '{}'); return l.city ? (l.city + (l.region ? ', ' + l.region.slice(0,2).toUpperCase() : '')) : (p.location || 'Aapka Shehar'); } catch { return 'Aapka Shehar'; } })()}</div>
               </div>
             </>
           ) : <div style={{ fontSize: 11, color: '#374151' }}>☁️ Loading...</div>}
         </div>
       </div>
-{/* XP + Streak */}
+
+      {/* NEET Countdown */}
+      {neetDays !== null && (
+        <div style={{
+          background: 'linear-gradient(135deg, rgba(239,68,68,0.1), rgba(99,102,241,0.1))',
+          border: '1px solid rgba(239,68,68,0.3)', borderRadius: 14,
+          padding: '12px 16px', marginBottom: 10,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          <div>
+            <div style={{ fontSize: 11, color: '#f87171', fontWeight: 700, marginBottom: 2 }}>🎯 NEET 2026 Countdown</div>
+            <div style={{ fontSize: 10, color: '#475569' }}>Har din count karta hai bhai</div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: 28, fontWeight: 900, color: '#f87171', lineHeight: 1 }}>{neetDays}</div>
+            <div style={{ fontSize: 9, color: '#6b7280' }}>days left</div>
+          </div>
+        </div>
+      )}
+
+      {/* XP + Streak */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
         <div style={{ background: 'rgba(15,23,42,0.9)', border: '1px solid rgba(255,215,0,0.15)', borderRadius: 14, padding: '10px 14px' }}>
           <div style={{ fontSize: 10, color: '#fbbf24', fontWeight: 600, marginBottom: 4 }}>⚡ Level {level}</div>
