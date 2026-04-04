@@ -45,8 +45,16 @@ export function extractAndStoreFacts(userMsg: string, aiResponse: string) {
   if (nameMatch) upsertFact(facts, { type: 'fact', text: `User ka naam ${nameMatch[1]} hai`, confidence: 0.9, tags: ['name', 'personal'] });
   const locMatch = userMsg.match(/(?:main|I|mujhe)\s+(?:rahta|rehta|stay|live|from)\s+(?:hoon|hun|in|at)?\s*([A-Za-z]+(?:\s[A-Za-z]+)?)/i);
   if (locMatch) upsertFact(facts, { type: 'fact', text: `User ${locMatch[1]} mein rehta hai`, confidence: 0.85, tags: ['location', 'personal'] });
-  const examMatch = u.match(/(neet|jee|upsc|gate|cat|board|12th|10th|clat|ssc|ias)/);
+  const examMatch = u.match(/(neet|jee|upsc|gate|cat|board|12th|10th|clat|ssc|ias|mba|btech|mbbs)/);
   if (examMatch) upsertFact(facts, { type: 'goal', text: `User ${examMatch[1].toUpperCase()} exam prepare kar raha hai`, confidence: 0.85, tags: ['exam', 'goal'] });
+  // Hobby detection
+  const hobbyMatch = u.match(/(cricket|football|gaming|music|drawing|photography|cooking|gym|yoga|running|coding|reading)/);
+  if (hobbyMatch) upsertFact(facts, { type: 'preference', text: `User ko ${hobbyMatch[1]} pasand hai`, confidence: 0.7, tags: ['hobby', 'interest'] });
+  // Goal explicit statement
+  const goalMatch = userMsg.match(/(?:mera goal|my goal|mujhe|i want to|chahta hoon?)\s+(.{5,40})/i);
+  if (goalMatch) upsertFact(facts, { type: 'goal', text: `User ka goal: ${goalMatch[1].trim()}`, confidence: 0.8, tags: ['goal', 'personal'] });
+  // Project tracking
+  if (u.match(/jarvis|apple10|apple 10|vercel|deploy|push|github/)) upsertFact(facts, { type: 'pattern', text: 'User JARVIS AI app build kar raha hai (apple10.vercel.app)', confidence: 0.95, tags: ['project', 'tech'] });
   if (u.match(/jarvis|project|app|banaya|build|develop|kaam chal raha/)) upsertFact(facts, { type: 'pattern', text: 'User apna JARVIS AI app build kar raha hai', confidence: 0.95, tags: ['project', 'tech'] });
   const techMatch = u.match(/(javascript|python|react|nextjs|typescript|flutter|android|ios|web dev)/i);
   if (techMatch) upsertFact(facts, { type: 'preference', text: `User ${techMatch[1]} use karta hai`, confidence: 0.8, tags: ['tech', 'language'] });
