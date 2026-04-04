@@ -1,65 +1,68 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-/* MOBILE FIX: keyboard pe screen aadhi nahi hogi */
-:root {
-  --vh: 1vh;
-}
+/* JARVIS Global Styles v2 */
+*, *::before, *::after { box-sizing: border-box; }
 
 html, body {
+  margin: 0; padding: 0;
   height: 100%;
-  /* Use dvh (dynamic viewport height) for mobile */
-  min-height: 100dvh;
+  background: #0a0b0f;
+  color: #e2e8f0;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   overscroll-behavior: none;
 }
 
-/* Fix for mobile keyboard pushing content */
-.chat-container {
-  height: 100dvh;
-  max-height: 100dvh;
-  display: flex;
-  flex-direction: column;
-}
-
-.chat-messages {
-  flex: 1;
-  overflow-y: auto;
-  /* Prevent keyboard resize from collapsing messages */
-  min-height: 0;
-}
-
-.chat-input-area {
-  flex-shrink: 0;
-  /* Stick to bottom even with keyboard */
-  position: sticky;
-  bottom: 0;
-}
-
 /* Smooth scrolling */
-* {
-  scroll-behavior: smooth;
-  -webkit-tap-highlight-color: transparent;
-}
+* { scroll-behavior: smooth; }
 
-/* Better text rendering */
-body {
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-}
-
-/* Hide scrollbar but keep scroll */
-::-webkit-scrollbar { width: 2px; }
+/* Custom scrollbar — thin and dark */
+::-webkit-scrollbar { width: 3px; height: 3px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 99px; }
+::-webkit-scrollbar-thumb { background: rgba(99,102,241,0.35); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(99,102,241,0.6); }
 
-/* Prevent zoom on input focus (iOS) */
-input, textarea, select {
-  font-size: 16px !important;
+/* No scrollbar utility */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Typing dots animation */
+.typing-dot { animation: typingPulse 1.2s ease-in-out infinite; }
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes typingPulse { 0%,80%,100% { transform:scale(0.8); opacity:0.4; } 40% { transform:scale(1.2); opacity:1; } }
+
+/* Fade-in animation */
+.fade-in { animation: fadeIn 0.25s ease-out; }
+@keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+
+/* Slide up animation */
+.slide-up { animation: slideUp 0.3s cubic-bezier(0.16,1,0.3,1); }
+@keyframes slideUp { from { transform:translateY(20px); opacity:0; } to { transform:translateY(0); opacity:1; } }
+
+/* Pulse animation for loading indicators */
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+@keyframes spin { to { transform:rotate(360deg); } }
+@keyframes orbPulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }
+
+/* Selection color */
+::selection { background: rgba(99,102,241,0.3); color: #e2e8f0; }
+
+/* Focus outline */
+button:focus-visible, input:focus-visible {
+  outline: 2px solid rgba(99,102,241,0.6);
+  outline-offset: 2px;
 }
 
-/* Safe area for notched phones */
-.safe-bottom {
-  padding-bottom: env(safe-area-inset-bottom);
+/* Prevent iOS zoom on input focus */
+input, textarea, select { font-size: 16px; }
+@media (max-width: 480px) { input, textarea, select { font-size: 16px; } }
+
+/* Safe area for iPhone notch */
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+
+/* Glass effect utility */
+.glass {
+  background: rgba(13,17,23,0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
