@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${GROQ}` },
       body: JSON.stringify({
-        model: 'llama-3.1-8b-instant',
+        model: 'llama-3.3-70b-versatile',
         messages: [
           { role: 'system', content: 'You are an expert at writing image generation prompts. Enhance the given prompt to be more detailed, vivid, and specific. Add art style, lighting, quality keywords. Return ONLY the enhanced prompt, nothing else.' },
           { role: 'user', content: prompt },
