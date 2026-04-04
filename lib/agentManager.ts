@@ -21,7 +21,21 @@ export async function initAgents(onMessage: (msg: string) => void) {
   // 1. Register periodic background sync (Android Chrome only)
   await registerPeriodicSync();
 
-  // 2. Request notification permission
+  // 2. Send profile to SW for background proactive
+  try {
+    const sw = await navigator.serviceWorker.ready;
+    const prof = JSON.parse(localStorage.getItem('jarvis_profile') || '{}');
+    const loc  = JSON.parse(localStorage.getItem('jarvis_location') || '{}');
+    sw.active?.postMessage({
+      type: 'STORE_PROFILE',
+      name: prof.name || 'Bhai',
+      lat:  loc.lat  || 24.5362,
+      lon:  loc.lon  || 81.3003,
+      city: loc.city || prof.location?.split(',')[0] || 'Maihar',
+    });
+  } catch {}
+
+  // 3. Request notification permission
   await requestNotificationPermission();
 
   // 3. Load cached data from IDB (instant startup)
