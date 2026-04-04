@@ -18,6 +18,7 @@ export default function DashboardPage() {
   const [time, setTime] = useState(new Date());
   const [updated, setUpdated] = useState('');
   const [activeTab, setActiveTab] = useState<'finance'|'cricket'|'news'>('finance');
+  const [weather, setWeather] = useState<{temp:number;desc:string;icon:string;city:string}|null>(null);
 
   useEffect(() => {
     const t = setInterval(()=>setTime(new Date()),1000);
@@ -28,7 +29,7 @@ export default function DashboardPage() {
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
-    await Promise.allSettled([fetchGold(),fetchCrypto(),fetchNews(),fetchStocks(),fetchCricket()]);
+    await Promise.allSettled([fetchGold(),fetchCrypto(),fetchNews(),fetchStocks(),fetchCricket(),fetchWeather()]);
     setLoading(false);
     setUpdated(new Date().toLocaleTimeString('hi-IN',{hour:'2-digit',minute:'2-digit'}));
   },[]);
@@ -66,6 +67,27 @@ export default function DashboardPage() {
       } catch {}
     }
     setStocks(results);
+  }
+
+  async function fetchWeather() {
+    try {
+      const loc = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('jarvis_location') || '{}') : {};
+      const prof = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('jarvis_profile') || '{}') : {};
+      const lat = loc.lat || 24.5362; const lon = loc.lon || 81.3003;
+      const city = loc.city || prof.location?.split(',')[0] || 'Maihar';
+      const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weathercode&timezone=auto`,{signal:AbortSignal.timeout(5000)});
+      if(r.ok) {
+        const d = await r.json(); const c = d.current;
+        const WMO: Record<number,[string,string]> = {
+          0:['☀️','Saaf'], 1:['🌤️','Mostly clear'], 2:['⛅','Partly cloudy'],
+          3:['☁️','Overcast'], 45:['🌫️','Foggy'], 51:['🌦️','Drizzle'],
+          61:['🌧️','Rain'], 63:['🌧️','Heavy rain'], 71:['❄️','Snow'],
+          80:['🌦️','Showers'], 95:['⛈️','Storm'],
+        };
+        const [icon, desc] = WMO[c.weathercode] || ['🌡️','Unknown'];
+        setWeather({ temp: Math.round(c.temperature_2m), desc, icon, city });
+      }
+    } catch {}
   }
 
   async function fetchCricket() {
