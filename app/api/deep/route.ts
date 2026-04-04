@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';
-export const maxDuration = 30;
+export const maxDuration = 60;
 
 // Gemini function calling — Deep mode tools
 const TOOL_DECLARATIONS = [
@@ -21,7 +21,7 @@ const TOOL_DECLARATIONS = [
 
 async function callTool(name: string, args: any): Promise<string> {
   try {
-    const r = await fetch(`${process.env.VERCEL_URL ? 'https://' + process.env.VERCEL_URL : 'http://localhost:3000'}/api/tools`, {
+    const r = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'https://apple10.vercel.app'}/api/tools`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ tool: name, params: args }),
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
 
   // First call — let Gemini decide which tools to call
   let res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
     ];
 
     const res2 = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
