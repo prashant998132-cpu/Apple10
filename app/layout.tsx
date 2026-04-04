@@ -1,16 +1,18 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter } from 'next/font/google';
 import './globals.css';
 import ServiceWorkerRegister from '@/components/ServiceWorkerRegister';
 
-const inter = Inter({ subsets: ['latin'] });
-
 export const metadata: Metadata = {
   title: 'JARVIS AI',
-  description: 'Your Personal AI — Groq + Gemini + Full Phone Access',
+  description: 'Tumhara Personal AI Assistant — Groq + Gemini + Full Phone Access',
   manifest: '/manifest.json',
-  appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: 'JARVIS' },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'JARVIS',
+  },
   formatDetection: { telephone: false },
+  keywords: ['AI', 'assistant', 'JARVIS', 'personal AI', 'Groq', 'Gemini'],
   icons: {
     icon: [
       { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
@@ -36,8 +38,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        {/* Preconnect for faster AI API calls */}
+        <link rel="preconnect" href="https://api.groq.com" />
+        <link rel="preconnect" href="https://generativelanguage.googleapis.com" />
+        <link rel="dns-prefetch" href="https://api.open-meteo.com" />
+        <link rel="dns-prefetch" href="https://api.coingecko.com" />
       </head>
-      <body className={inter.className}>
+      <body style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif', margin: 0 }}>
         <ServiceWorkerRegister />
         {children}
       </body>
