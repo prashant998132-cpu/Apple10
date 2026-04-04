@@ -2,6 +2,9 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
+// JARVIS Fix: neetDays declaration
+const neetDays = Math.max(0, Math.ceil((new Date('2025-05-04').getTime() - Date.now()) / 86400000));
+
 // NEET 2026 exam date
 const NEET_DATE = new Date('2026-05-03T00:00:00+05:30');
 
