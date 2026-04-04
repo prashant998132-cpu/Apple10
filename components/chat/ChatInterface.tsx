@@ -292,9 +292,7 @@ export default function ChatInterface() {
       if (e?.name !== 'AbortError') {
         const fb = keywordFallback(userText);
         const errMsg = (e?.message || '').includes('fetch') || (e?.message || '').includes('network')
-          ? '⚠️ Net slow lag raha hai. Dobara try karo.
-
-' + fb
+          ? `⚠️ Net slow lag raha hai. Dobara try karo. ${fb}`
           : fb;
         setMessages(prev => [...prev, { id: 'err_' + Date.now(), role: 'assistant', content: errMsg, ts: Date.now() }]);
       }
