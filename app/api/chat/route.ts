@@ -14,12 +14,12 @@ export async function POST(req: NextRequest) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${GROQ}` },
         body: JSON.stringify({
-          model: 'llama-3.1-8b-instant',
+          model: 'llama-3.3-70b-versatile',
           messages: [
             { role: 'system', content: system || 'Tu JARVIS hai. Hinglish mein baat kar.' },
             { role: 'user', content: message },
           ],
-          max_tokens: 300,
+          max_tokens: 500,
           temperature: 0.7,
         }),
         signal: AbortSignal.timeout(10000),
@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (GEMINI) {
-      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI}`, {
+      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
