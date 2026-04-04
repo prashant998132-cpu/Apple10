@@ -23,7 +23,7 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     aliases: ['/mausam', '/w'],
     description: 'Aaj ka mausam',
     example: '/weather',
-    handler: () => 'Aaj ka mausam kaisa hai Maihar mein?',
+    handler: () => 'Aaj ka mausam kaisa hai?',
   },
   {
     cmd: '/translate',
