@@ -44,7 +44,7 @@ function save(key: string, val: any) {
 export default function SettingsPage() {
   const [tab, setTab] = useState('profile');
   const [toast, setToast] = useState('');
-  const [profile, setProfile] = useState<Profile>({ name: 'Prashant', location: 'Nadan, Maihar, MP', goal: 'NEET', age: '22', customInstructions: '', language: 'hinglish', responseLength: 'balanced', temperature: 0.7 });
+  const [profile, setProfile] = useState<Profile>({ name: '', location: '', goal: '', age: '', customInstructions: '', language: 'hinglish', responseLength: 'balanced', temperature: 0.7 });
   const [apiKeys, setApiKeys] = useState<ApiKeys>({ groq: '', gemini: '', anthropic: '', openrouter: '', together: '', elevenlabs: '', cricapi: '', brave: '' });
   const [memory, setMemory] = useState<Memory>({ facts: [] });
   const [reminders, setReminders] = useState<Reminder[]>([]);
@@ -148,8 +148,8 @@ export default function SettingsPage() {
               <div style={S.sectionTitle}>👤 Profile Info</div>
               <p style={{ fontSize: 11, color: '#475569', marginBottom: 12 }}>Yeh info JARVIS ko personality deta hai — teri baaton mein context aata hai.</p>
               {[
-                { field: 'name', label: '👤 Naam', placeholder: 'Prashant' },
-                { field: 'location', label: '📍 Location', placeholder: 'Maihar, MP' },
+                { field: 'name', label: '👤 Naam', placeholder: 'Apna naam daalo' },
+                { field: 'location', label: '📍 Location', placeholder: 'Apna shehar daalo' },
                 { field: 'goal', label: '🎯 Goal / Kaam', placeholder: 'NEET, Engineering...' },
                 { field: 'age', label: '🎂 Age', placeholder: '22' },
               ].map(({ field, label, placeholder }) => (
