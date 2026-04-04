@@ -8,7 +8,9 @@ export default function ServiceWorkerRegister() {
 
     navigator.serviceWorker.register('/sw.js', { scope: '/' })
       .then(reg => {
-        console.log('[JARVIS SW] ✅ Registered:', reg.scope);
+        console.log('[JARVIS SW] Registered:', reg.scope);
+
+        // Auto-update
         reg.addEventListener('updatefound', () => {
           reg.installing?.addEventListener('statechange', function() {
             if (this.state === 'installed' && navigator.serviceWorker.controller) {
@@ -16,10 +18,30 @@ export default function ServiceWorkerRegister() {
             }
           });
         });
+
+        // Send profile + location to SW for background proactive
+        setTimeout(() => {
+          try {
+            const prof = JSON.parse(localStorage.getItem('jarvis_profile') || '{}');
+            const loc  = JSON.parse(localStorage.getItem('jarvis_location') || '{}');
+            reg.active?.postMessage({
+              type: 'STORE_PROFILE',
+              name: prof.name || 'Bhai',
+              lat:  loc.lat  || 24.5362,
+              lon:  loc.lon  || 81.3003,
+              city: loc.city || prof.location?.split(',')[0] || 'Maihar',
+            });
+          } catch {}
+
+          // Register periodic sync for background proactive
+          reg.active?.postMessage({ type: 'REGISTER_PERIODIC_SYNC' });
+        }, 1500);
       })
       .catch(err => console.log('[JARVIS SW] Failed:', err));
 
+    // Handle messages from SW
     navigator.serviceWorker.addEventListener('message', (event) => {
+      // Reminder check
       if (event.data?.type === 'CHECK_REMINDERS') {
         try {
           const reminders = JSON.parse(localStorage.getItem('jarvis_reminders_list') || '[]');
@@ -33,6 +55,10 @@ export default function ServiceWorkerRegister() {
             due.forEach((r: any) => new Notification('⏰ JARVIS', { body: r.text, icon: '/icons/icon-192.png' }));
           }
         } catch {}
+      }
+      // Offline sync flushed
+      if (event.data?.type === 'QUEUE_FLUSHED') {
+        console.log('[JARVIS] Offline queue flushed:', event.data.count);
       }
     });
 
