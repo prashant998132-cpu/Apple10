@@ -10,7 +10,11 @@
   "background_color": "#0a0b0f",
   "lang": "hi-IN",
   "dir": "ltr",
-  "categories": ["productivity", "utilities", "lifestyle"],
+  "categories": [
+    "productivity",
+    "utilities",
+    "lifestyle"
+  ],
   "icons": [
     {
       "src": "/icons/icon-72.png",
@@ -112,6 +116,19 @@
           "type": "image/png"
         }
       ]
+    },
+    {
+      "name": "Dashboard",
+      "short_name": "Dash",
+      "description": "Gold, Crypto, News, Cricket",
+      "url": "/dashboard",
+      "icons": [
+        {
+          "src": "/icons/icon-96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
     }
   ],
   "screenshots": [
@@ -132,8 +149,7 @@
   ],
   "share_target": {
     "action": "/share-target",
-    "method": "POST",
-    "enctype": "multipart/form-data",
+    "method": "GET",
     "params": {
       "title": "title",
       "text": "text",
