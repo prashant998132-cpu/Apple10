@@ -28,6 +28,7 @@ export default function BottomNav() {
     { path: '/notes',       icon: '📝', label: 'Notes' },
     { path: '/stats',       icon: '📈', label: 'Stats' },
     { path: '/mitra',       icon: '🤝', label: 'Mitra' },
+    { path: '/quiz',        icon: '🧠', label: 'Quiz'  },
     { path: '/vault',       icon: '🗄️', label: 'Vault' },
     { path: '/neet',        icon: '🎓', label: 'NEET' },
     { path: '/target',      icon: '🎯', label: 'Goals' },
