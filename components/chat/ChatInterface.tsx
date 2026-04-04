@@ -287,11 +287,15 @@ export default function ChatInterface() {
       }
       extractAndStoreFacts(userText, full);
       addXP(10);
+      // Track last chat date for proactive nudge
+      try { localStorage.setItem('jarvis_last_chat_date', new Date().toDateString()); } catch {}
     } catch (e: any) {
       if (e?.name !== 'AbortError') {
         const fb = keywordFallback(userText);
         const errMsg = (e?.message || '').includes('fetch') || (e?.message || '').includes('network')
-          ? `⚠️ Net slow lag raha hai. Dobara try karo.\n\n${fb}`
+          ? '⚠️ Net slow lag raha hai. Dobara try karo.
+
+' + fb
           : fb;
         setMessages(prev => [...prev, { id: 'err_' + Date.now(), role: 'assistant', content: errMsg, ts: Date.now() }]);
       }
