@@ -15,7 +15,7 @@ interface Stats {
 
 function loadStats(): Stats {
   try {
-    const raw = localStorage.getItem('jarvis-db-profile') || '{}';
+    const raw = localStorage.getItem('jarvis_profile') || localStorage.getItem('jarvis-db-profile') || '{}';
     const profile = JSON.parse(raw);
     const xp = profile.xp || 0;
     const cloudMsgs = JSON.parse(localStorage.getItem('jarvis_cloud_messages') || '[]');
@@ -25,7 +25,7 @@ function loadStats(): Stats {
       xp,
       level: Math.floor(xp / 100) + 1,
       streak: profile.streak || 0,
-      totalMessages: profile.totalMessages || cloudMsgs.length || 0,
+      totalMessages: profile.totalMessages || profile.total_messages || cloudMsgs.length || 0,
       totalSessions: profile.totalSessions || 0,
       badges: profile.badges || [],
       memories: vectors.length,
