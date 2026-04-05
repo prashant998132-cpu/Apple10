@@ -55,9 +55,27 @@ export function extractAndStoreFacts(userMsg: string, aiResponse: string) {
   if (goalMatch) upsertFact(facts, { type: 'goal', text: `User ka goal: ${goalMatch[1].trim()}`, confidence: 0.8, tags: ['goal', 'personal'] });
   // Project tracking
   if (u.match(/jarvis|apple10|apple 10|vercel|deploy|push|github/)) upsertFact(facts, { type: 'pattern', text: 'User JARVIS AI app build kar raha hai (apple10.vercel.app)', confidence: 0.95, tags: ['project', 'tech'] });
-  if (u.match(/jarvis|project|app|banaya|build|develop|kaam chal raha/)) upsertFact(facts, { type: 'pattern', text: 'User apna JARVIS AI app build kar raha hai', confidence: 0.95, tags: ['project', 'tech'] });
-  const techMatch = u.match(/(javascript|python|react|nextjs|typescript|flutter|android|ios|web dev)/i);
+  if (u.match(/jarvis|project|app|banaya|build|develop|kaam chal raha/)) upsertFact(facts, { type: 'pattern', text: 'User apna JARVIS AI app build kar raha hai (apple10.vercel.app)', confidence: 0.95, tags: ['project', 'tech'] });
+  const techMatch = u.match(/(javascript|python|react|nextjs|typescript|flutter|android|ios|web dev|tailwind|vercel|supabase)/i);
   if (techMatch) upsertFact(facts, { type: 'preference', text: `User ${techMatch[1]} use karta hai`, confidence: 0.8, tags: ['tech', 'language'] });
+
+  // Food preferences
+  const foodMatch = u.match(/(veg|vegetarian|non-veg|chicken|paneer|dal|sabzi|pizza|biryani|healthy food)/i);
+  if (foodMatch) upsertFact(facts, { type: 'preference', text: `User ko ${foodMatch[1]} pasand hai`, confidence: 0.7, tags: ['food', 'preference'] });
+
+  // Sleep pattern
+  const sleepMatch = u.match(/(neend nahi|insomnia|raat ko|late night|2 baje|3 baje|subah jaldi)/i);
+  if (sleepMatch) upsertFact(facts, { type: 'pattern', text: `User ka sleep pattern irregular lag raha hai`, confidence: 0.65, tags: ['health', 'sleep'] });
+
+  // Language preference
+  if (userMsg.match(/[\u0900-\u097F]/)) upsertFact(facts, { type: 'preference', text: 'User Hindi mein bhi baat karta hai', confidence: 0.9, tags: ['language'] });
+
+  // Study time patterns
+  if (u.match(/raat ko padh|late night study|night study|subah padh|early morning study/)) upsertFact(facts, { type: 'pattern', text: 'User irregularly study karta hai — late night ya early morning', confidence: 0.75, tags: ['study', 'pattern'] });
+
+  // Mood tracking
+  const moodMatch = u.match(/(bahut khush|very happy|depressed|stressed|anxious|nervous|confident|motivated)/i);
+  if (moodMatch) upsertFact(facts, { type: 'pattern', text: `User ka recent mood: ${moodMatch[1]}`, confidence: 0.6, tags: ['mood', 'emotion'] });
   const topicKeywords: Record<string, string> = { weather: 'mausam/weather', crypto: 'crypto/finance', news: 'news/khabar', coding: 'coding help', study: 'study/padhai', food: 'khana/recipes' };
   for (const [kw, topic] of Object.entries(topicKeywords)) { if (u.includes(kw)) upsertFact(facts, { type: 'pattern', text: `User aksar ${topic} ke baare mein poochta hai`, confidence: 0.55, tags: ['topic'] }); }
   saveFacts(facts);
