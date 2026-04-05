@@ -1,4 +1,4 @@
-const C='jarvis-v10';const O='/offline.html';
+const C='jarvis-v11';const O='/offline.html';
 
 self.addEventListener('install',e=>{
   e.waitUntil(caches.open(C).then(c=>c.addAll(['/','offline.html','/icons/icon-192.png','/icons/icon-512.png','/icons/maskable-192.png']).catch(()=>{})));
@@ -194,3 +194,38 @@ function openDB(){
     req.onerror=()=>rej(req.error);
   });
 }
+
+// ── Offline Message Queue ──────────────────────────────────────
+// Stores messages when offline, syncs when back online
+self.addEventListener('message', e => {
+  if (e.data?.type === 'QUEUE_MESSAGE') {
+    const queue = getQueue();
+    queue.push({ ...e.data.message, ts: Date.now() });
+    setQueue(queue);
+    // Notify client message is queued
+    e.source?.postMessage({ type: 'MESSAGE_QUEUED', count: queue.length });
+  }
+  if (e.data?.type === 'GET_QUEUE_COUNT') {
+    e.source?.postMessage({ type: 'QUEUE_COUNT', count: getQueue().length });
+  }
+});
+
+function getQueue() {
+  try {
+    return JSON.parse(self._offlineQueue || '[]');
+  } catch { return []; }
+}
+function setQueue(q) {
+  try { self._offlineQueue = JSON.stringify(q); } catch {}
+}
+
+// Sync queued messages when back online
+self.addEventListener('online', () => {
+  const queue = getQueue();
+  if (queue.length > 0) {
+    self.clients.matchAll().then(clients => {
+      clients.forEach(c => c.postMessage({ type: 'SYNC_QUEUE', messages: queue }));
+    });
+    setQueue([]); // Clear after sync
+  }
+});
