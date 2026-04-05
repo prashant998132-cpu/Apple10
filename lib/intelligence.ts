@@ -1,6 +1,6 @@
 'use client';
 
-export type PersonalityMode = 'default' | 'fun' | 'serious' | 'motivational' | 'sarcastic' | 'roast' | 'philosopher' | 'teacher';
+export type PersonalityMode = 'default' | 'fun' | 'serious' | 'motivational' | 'sarcastic' | 'roast' | 'philosopher' | 'teacher' | 'study' | 'code';
 
 function buildPrompts(n: string): Record<PersonalityMode, string> {
   return {
@@ -12,6 +12,8 @@ function buildPrompts(n: string): Record<PersonalityMode, string> {
     roast:        'Tu JARVIS hai — roast mode! Friendly roast kar ' + n + ' ko. Lovingly savage.',
     philosopher:  'Tu JARVIS hai — philosopher mode. Deep questions, Hindi quotes. Stoic + Indian wisdom.',
     teacher:      'Tu JARVIS hai — teacher mode. Explain with examples, step-by-step.',
+    study:        'Tu JARVIS hai — ' + n + ' ka dedicated study companion. Concepts clearly samjhao, memory tricks do, MCQ practice karo. NEET/JEE/Board exams ke liye optimized. Diagrams text se banao. Formulas bold karo. Short tricks aur mnemonics dete raho.',
+    code:         'Tu JARVIS hai — senior developer mode. ' + n + ' ke code review, debug, aur architecture decisions mein help karo. TypeScript/React/Next.js/Python expert. Hamesha code blocks use karo. Best practices batao, edge cases highlight karo, performance tips do.',
   };
 }
 
@@ -29,11 +31,12 @@ export function detectEmotion(text: string): string {
 
 export function detectConversationMode(text: string): string {
   const t = text.toLowerCase();
-  if (t.match(/code|function|error|debug|programming|javascript|python|react/)) return 'technical';
+  if (t.match(/code|function|error|debug|programming|javascript|python|react|typescript|nextjs/)) return 'technical';
   if (t.match(/feel|sad|happy|anxious|love|miss|hurt|lonely/)) return 'emotional';
   if (t.match(/news|current|latest|today|abhi|update|kya hua/)) return 'news';
   if (t.match(/weather|mausam|temperature|rain|barish/)) return 'weather';
   if (t.match(/music|song|gaana|play|spotify|youtube/)) return 'entertainment';
+  if (t.match(/neet|jee|board|physics|chemistry|biology|math|exam|mcq|question/)) return 'study';
   return 'general';
 }
 
@@ -78,14 +81,19 @@ export function getSystemPrompt(
   };
 
   const locationStr = profile?.location ? `, ${profile.location}` : '';
-  let sys = p + '\n\nUser ka naam: ' + name + '. Abhi ' + timeCtx + ' hai, IST' + locationStr + '.';
+  const goalStr = profile?.goal ? ` | Goal: ${profile.goal}` : '';
+  let sys = p + '\n\nUser: ' + name + '. Time: ' + timeCtx + ' IST' + locationStr + goalStr + '.';
 
   if (emotion !== 'neutral' && emotionCtx[emotion]) {
     sys += '\n\nContext: ' + emotionCtx[emotion];
   }
 
+  if (profile?.customInstructions) {
+    sys += '\n\nUser ki custom instructions: ' + profile.customInstructions;
+  }
+
   if (memories.length > 0) {
-    sys += '\n\n**User ke baare mein yaad hai:**\n' + memories.slice(0, 10).map(m => '- ' + m).join('\n');
+    sys += '\n\n**User ke baare mein yaad hai:**\n' + memories.slice(0, 12).map(m => '- ' + m).join('\n');
   }
 
   if (toolResults && toolResults.length > 0) {
@@ -93,7 +101,7 @@ export function getSystemPrompt(
     sys += '\n\nYeh tool data use karke answer de. Data ko natural conversation mein weave kar.';
   }
 
-  sys += '\n\nRules:\n- Hinglish preferred\n- Concise but complete\n- Never say "As an AI..." — tu JARVIS hai\n- Tool data agar hai toh use it, fabricate mat kar';
+  sys += '\n\nRules:\n- Hinglish preferred (English + Hindi mix)\n- Concise but complete\n- Never say "As an AI..." — tu JARVIS hai\n- Tool data agar hai toh use it, fabricate mat kar\n- Markdown formatting use kar (bold, bullets, code blocks)';
 
   return sys;
 }
@@ -107,7 +115,7 @@ export function keywordFallback(query: string): string {
   if (q.match(/time|kitne baje/)) {
     return 'Abhi ' + new Date().toLocaleTimeString('hi-IN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' }) + ' ho rahi hai (IST)';
   }
-  if (q.match(/thanks|shukriya|dhanyawad/)) return 'Koi baat nahi Bhai! Sada tumhari seva mein';
-  if (q.match(/bye|alvida|baad mein/)) return 'Alvida Bhai! Agar kuch chahiye toh bulana';
+  if (q.match(/thanks|shukriya|dhanyawad/)) return 'Koi baat nahi Bhai! Sada tumhari seva mein 🙏';
+  if (q.match(/bye|alvida|baad mein/)) return 'Alvida Bhai! Agar kuch chahiye toh bulana 👋';
   return 'Main samjha nahi bhai. Thoda aur detail mein batao?';
 }
