@@ -6,16 +6,54 @@ interface Props {
   onSend: (text: string) => void;
 }
 
-const SUGGESTIONS = [
-  { icon: '🌤️', text: 'Aaj ka mausam kaisa hai?' },
-  { icon: '💰', text: 'Bitcoin aur gold ka aaj ka rate batao' },
-  { icon: '📰', text: 'Aaj ki top news kya hai?' },
-  { icon: '💪', text: 'Mujhe aaj ke liye motivate karo' },
-  { icon: '🤖', text: 'Kya kar sakta hai tu?' },
-  { icon: '🎯', text: 'Aaj ka productivity plan bana do' },
-  { icon: '💡', text: 'Koi interesting fact batao' },
-  { icon: '🧠', text: 'Kuch naya sikhao aaj' },
-];
+const NEET_DATE = new Date('2026-05-03T00:00:00+05:30');
+
+function getNEETDays() {
+  return Math.max(0, Math.ceil((NEET_DATE.getTime() - Date.now()) / 86400000));
+}
+
+function getSmartSuggestions() {
+  const h = new Date().getHours();
+  const day = new Date().getDay(); // 0=Sun
+  const isWeekend = day === 0 || day === 6;
+
+  if (h < 6) return [
+    { icon: '🌙', text: 'Raat ko neend nahi aa rahi — kya karna chahiye?' },
+    { icon: '⭐', text: 'Koi interesting fact batao' },
+    { icon: '📖', text: 'Ek short motivational story sunao' },
+    { icon: '🧠', text: 'Mind relax karne ke tips do' },
+  ];
+  if (h < 10) return [
+    { icon: '🌅', text: 'Aaj ka weather aur plan kya hona chahiye?' },
+    { icon: '📰', text: 'Aaj ki top news kya hai?' },
+    { icon: '🎯', text: 'Aaj ke liye productivity plan banao' },
+    { icon: '💪', text: 'Subah ki motivation do bhai' },
+  ];
+  if (h < 13) return [
+    { icon: '📚', text: isWeekend ? 'Weekend study plan banao NEET ke liye' : 'Aaj kya padhna chahiye?' },
+    { icon: '⚛️', text: 'Physics ka ek important formula samjhao' },
+    { icon: '🧪', text: 'Chemistry MCQ practice karwa do' },
+    { icon: '💡', text: 'Study tips aur tricks batao' },
+  ];
+  if (h < 16) return [
+    { icon: '☕', text: 'Dopahar ke bad energy kaise badhayein?' },
+    { icon: '🔬', text: 'Biology ka ek concept explain karo' },
+    { icon: '💰', text: 'Bitcoin aur gold ka aaj ka rate batao' },
+    { icon: '🎯', text: 'Pomodoro technique se kaise padhen?' },
+  ];
+  if (h < 20) return [
+    { icon: '🌆', text: 'Aaj ka revision plan banao' },
+    { icon: '📝', text: 'Mock test ke baad kya karna chahiye?' },
+    { icon: '🏃', text: 'Evening exercise routine suggest karo' },
+    { icon: '🍎', text: 'Healthy dinner ideas do' },
+  ];
+  return [
+    { icon: '🌙', text: 'Raat ko padhne ke best tips?' },
+    { icon: '⭐', text: 'Aaj kya naya seekha? Recap karo' },
+    { icon: '😴', text: 'Neend achi aane ke liye kya karein?' },
+    { icon: '🎧', text: 'Study music recommendations' },
+  ];
+}
 
 function getGreet() {
   const h = new Date().getHours();
@@ -33,15 +71,15 @@ function formatDate() {
   return new Date().toLocaleDateString('hi-IN', { weekday: 'long', day: 'numeric', month: 'long' });
 }
 
-// NEET countdown removed
-
 export default function HomeScreen({ name, onSend }: Props) {
   const [time, setTime] = useState(formatTime());
   const [weather, setWeather] = useState<{ temp: number; icon: string; desc: string } | null>(null);
-
+  const [crypto, setCrypto] = useState<{ btc: number; eth: number } | null>(null);
   const [streak, setStreak] = useState(0);
   const [xp, setXp] = useState(0);
+  const [neetDays] = useState(getNEETDays());
   const greet = getGreet();
+  const suggestions = getSmartSuggestions();
 
   useEffect(() => {
     const id = setInterval(() => setTime(formatTime()), 1000);
@@ -49,24 +87,23 @@ export default function HomeScreen({ name, onSend }: Props) {
   }, []);
 
   useEffect(() => {
-
-    // Load streak + XP from localStorage
     try {
       const profile = JSON.parse(localStorage.getItem('jarvis-db-profile') || '{}');
       setStreak(profile?.streak || 0);
       setXp(profile?.xp || 0);
     } catch {}
-    // Weather — location from localStorage (fallback: Maihar)
+
+    // Weather
     (() => {
-        try {
-          const loc = JSON.parse(localStorage.getItem('jarvis_location') || '{}');
-          const lat = loc.lat || 24.53;
-          const lon = loc.lon || 81.3;
-          return fetch('https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon + '&current=temperature_2m,weathercode&timezone=auto');
-        } catch {
-          return fetch('https://api.open-meteo.com/v1/forecast?latitude=24.53&longitude=81.3&current=temperature_2m,weathercode&timezone=Asia/Kolkata');
-        }
-      })()
+      try {
+        const loc = JSON.parse(localStorage.getItem('jarvis_location') || '{}');
+        const lat = loc.lat || 24.53;
+        const lon = loc.lon || 81.3;
+        return fetch('https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon + '&current=temperature_2m,weathercode&timezone=auto');
+      } catch {
+        return fetch('https://api.open-meteo.com/v1/forecast?latitude=24.53&longitude=81.3&current=temperature_2m,weathercode&timezone=Asia/Kolkata');
+      }
+    })()
       .then(r => r.json())
       .then(d => {
         const c = d.current;
@@ -80,20 +117,34 @@ export default function HomeScreen({ name, onSend }: Props) {
         const [icon, desc] = WMO[wc] || ['🌡️', 'Unknown'];
         setWeather({ temp: Math.round(c.temperature_2m), icon, desc });
       }).catch(() => {});
+
+    // Crypto mini ticker
+    fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=inr', { signal: AbortSignal.timeout(6000) })
+      .then(r => r.json())
+      .then(d => setCrypto({ btc: d.bitcoin?.inr, eth: d.ethereum?.inr }))
+      .catch(() => {});
   }, []);
 
   const level = Math.floor(xp / 100) + 1;
   const xpProgress = xp % 100;
 
+  const cityName = typeof window !== 'undefined' ? (() => {
+    try {
+      const l = JSON.parse(localStorage.getItem('jarvis_location') || '{}');
+      const p = JSON.parse(localStorage.getItem('jarvis_profile') || '{}');
+      return l.city || p.location?.split(',')[0] || 'Aapka Shehar';
+    } catch { return 'Aapka Shehar'; }
+  })() : 'Aapka Shehar';
+
   return (
     <div style={{ padding: '0 14px 80px', maxWidth: 480, margin: '0 auto' }}>
 
       {/* Greeting */}
-      <div style={{ textAlign: 'center', padding: '24px 0 16px' }}>
-        <div style={{ fontSize: 12, color: '#60a5fa', fontWeight: 600, marginBottom: 3, letterSpacing: '0.03em' }}>
+      <div style={{ textAlign: 'center', padding: '20px 0 14px' }}>
+        <div style={{ fontSize: 11, color: '#60a5fa', fontWeight: 600, marginBottom: 3, letterSpacing: '0.04em' }}>
           {greet.text} {greet.emoji}
         </div>
-        <div style={{ fontSize: 30, fontWeight: 900, color: '#f1f5f9', letterSpacing: '-0.5px' }}>
+        <div style={{ fontSize: 28, fontWeight: 900, color: '#f1f5f9', letterSpacing: '-0.5px' }}>
           {name} 👋
         </div>
       </div>
@@ -104,13 +155,14 @@ export default function HomeScreen({ name, onSend }: Props) {
           <div style={{ fontSize: 26, fontWeight: 900, color: '#60a5fa', lineHeight: 1.1 }}>{time}</div>
           <div style={{ fontSize: 10, color: '#475569', marginTop: 4 }}>{formatDate()}</div>
         </div>
-        <div style={{ background: 'rgba(15,23,42,0.9)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ background: 'rgba(15,23,42,0.9)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
+          onClick={() => onSend('Aaj ka weather forecast aur tips do')}>
           {weather ? (
             <>
               <div style={{ fontSize: 28 }}>{weather.icon}</div>
               <div>
                 <div style={{ fontSize: 22, fontWeight: 900, color: '#f1f5f9' }}>{weather.temp}°C</div>
-                <div style={{ fontSize: 10, color: '#475569' }}>{(() => { try { const l = JSON.parse(localStorage.getItem('jarvis_location') || '{}'); const p = JSON.parse(localStorage.getItem('jarvis_profile') || '{}'); return l.city ? (l.city + (l.region ? ', ' + l.region.slice(0,2).toUpperCase() : '')) : (p.location || 'Aapka Shehar'); } catch { return 'Aapka Shehar'; } })()}</div>
+                <div style={{ fontSize: 10, color: '#475569' }}>{cityName}</div>
               </div>
             </>
           ) : <div style={{ fontSize: 11, color: '#374151' }}>☁️ Loading...</div>}
@@ -118,45 +170,52 @@ export default function HomeScreen({ name, onSend }: Props) {
       </div>
 
       {/* NEET Countdown */}
-      {neetDays !== null && (
-        <div style={{
-          background: 'linear-gradient(135deg, rgba(239,68,68,0.1), rgba(99,102,241,0.1))',
-          border: '1px solid rgba(239,68,68,0.3)', borderRadius: 14,
-          padding: '12px 16px', marginBottom: 10,
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        }}>
-          <div>
-            <div style={{ fontSize: 11, color: '#f87171', fontWeight: 700, marginBottom: 2 }}>🎯 NEET 2026 Countdown</div>
-            <div style={{ fontSize: 10, color: '#475569' }}>Har din count karta hai bhai</div>
-          </div>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: 28, fontWeight: 900, color: '#f87171', lineHeight: 1 }}>{neetDays}</div>
-            <div style={{ fontSize: 9, color: '#6b7280' }}>days left</div>
-          </div>
+      <div style={{
+        background: 'linear-gradient(135deg, rgba(239,68,68,0.08), rgba(99,102,241,0.08))',
+        border: '1px solid rgba(239,68,68,0.25)', borderRadius: 14,
+        padding: '11px 16px', marginBottom: 10,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        cursor: 'pointer',
+      }} onClick={() => onSend('NEET 2026 ke liye aaj ka study plan banao')}>
+        <div>
+          <div style={{ fontSize: 11, color: '#f87171', fontWeight: 800, marginBottom: 2 }}>🎯 NEET 2026 Countdown</div>
+          <div style={{ fontSize: 10, color: '#475569' }}>Aaj ka study plan banao →</div>
         </div>
-      )}
-
-      {/* XP + Streak */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
-        <div style={{ background: 'rgba(15,23,42,0.9)', border: '1px solid rgba(255,215,0,0.15)', borderRadius: 14, padding: '10px 14px' }}>
-          <div style={{ fontSize: 10, color: '#fbbf24', fontWeight: 600, marginBottom: 4 }}>⚡ Level {level}</div>
-          <div style={{ height: 4, background: 'rgba(255,255,255,0.07)', borderRadius: 99, overflow: 'hidden', marginBottom: 4 }}>
-            <div style={{ height: '100%', width: xpProgress + '%', background: 'linear-gradient(90deg, #fbbf24, #f59e0b)', borderRadius: 99, transition: 'width 0.5s' }} />
-          </div>
-          <div style={{ fontSize: 10, color: '#475569' }}>{xp} XP total</div>
-        </div>
-        <div style={{ background: 'rgba(15,23,42,0.9)', border: '1px solid rgba(34,197,94,0.15)', borderRadius: 14, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ fontSize: 24 }}>🔥</div>
-          <div>
-            <div style={{ fontSize: 20, fontWeight: 900, color: '#22c55e' }}>{streak}</div>
-            <div style={{ fontSize: 10, color: '#475569' }}>day streak</div>
-          </div>
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ fontSize: 28, fontWeight: 900, color: '#f87171', lineHeight: 1 }}>{neetDays}</div>
+          <div style={{ fontSize: 9, color: '#6b7280' }}>days left</div>
         </div>
       </div>
 
-      {/* Quick actions */}
+      {/* XP + Streak + Crypto */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 12 }}>
+        <div style={{ background: 'rgba(15,23,42,0.9)', border: '1px solid rgba(255,215,0,0.15)', borderRadius: 12, padding: '9px 12px' }}>
+          <div style={{ fontSize: 9, color: '#fbbf24', fontWeight: 600, marginBottom: 3 }}>⚡ Lv.{level}</div>
+          <div style={{ height: 3, background: 'rgba(255,255,255,0.07)', borderRadius: 99, overflow: 'hidden', marginBottom: 3 }}>
+            <div style={{ height: '100%', width: xpProgress + '%', background: 'linear-gradient(90deg, #fbbf24, #f59e0b)', borderRadius: 99 }} />
+          </div>
+          <div style={{ fontSize: 9, color: '#475569' }}>{xp} XP</div>
+        </div>
+        <div style={{ background: 'rgba(15,23,42,0.9)', border: '1px solid rgba(34,197,94,0.15)', borderRadius: 12, padding: '9px 12px', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ fontSize: 18 }}>🔥</div>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 900, color: '#22c55e' }}>{streak}</div>
+            <div style={{ fontSize: 9, color: '#475569' }}>streak</div>
+          </div>
+        </div>
+        <div style={{ background: 'rgba(15,23,42,0.9)', border: '1px solid rgba(251,191,36,0.15)', borderRadius: 12, padding: '9px 10px', cursor: 'pointer' }}
+          onClick={() => onSend('Bitcoin aur crypto prices live batao')}>
+          <div style={{ fontSize: 9, color: '#fbbf24', fontWeight: 600, marginBottom: 3 }}>₿ BTC</div>
+          <div style={{ fontSize: crypto ? 11 : 9, fontWeight: 900, color: '#fbbf24', lineHeight: 1.2 }}>
+            {crypto ? '₹' + (crypto.btc / 100000).toFixed(0) + 'L' : '...'}
+          </div>
+          <div style={{ fontSize: 8, color: '#475569' }}>tap for all</div>
+        </div>
+      </div>
+
+      {/* Smart suggestions */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-        {SUGGESTIONS.map((s, i) => (
+        {suggestions.map((s, i) => (
           <button key={i} onClick={() => onSend(s.text)}
             style={{
               background: 'rgba(15,23,42,0.8)', border: '1px solid rgba(255,255,255,0.06)',
