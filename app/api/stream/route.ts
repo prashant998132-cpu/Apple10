@@ -140,6 +140,17 @@ async function* streamDeepSeek(messages: any[], key: string): AsyncGenerator<str
   yield* streamSSE(r);
 }
 
+
+async function* streamMistral(messages: any[], key: string): AsyncGenerator<string> {
+  const r = await fetch('https://api.mistral.ai/v1/chat/completions', {
+    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+    body: JSON.stringify({ model: 'mistral-small-latest', messages, stream: true, max_tokens: 1500, temperature: 0.7 }),
+    signal: AbortSignal.timeout(15000),
+  });
+  if (!r.ok) throw new Error(`Mistral ${r.status}`);
+  yield* streamSSE(r);
+}
+
 async function* streamPollinations(messages: any[]): AsyncGenerator<string> {
   const urls = ['https://text.pollinations.ai/openai', 'https://api.pollinations.ai/v1/chat/completions'];
   for (const url of urls) {
@@ -240,6 +251,7 @@ export async function POST(req: NextRequest) {
     const togetherKey = process.env.TOGETHER_API_KEY || '';
     const deepseekKey = process.env.DEEPSEEK_API_KEY || '';
     const claudeKey   = process.env.ANTHROPIC_API_KEY || '';
+    const mistralKey  = process.env.MISTRAL_API_KEY || '';
     const allMsgs = system ? [{ role: 'system', content: system }, ...messages] : messages;
     const encoder = new TextEncoder();
 
@@ -275,6 +287,7 @@ export async function POST(req: NextRequest) {
           if (cerebrasKey) providers.push({ name: 'Cerebras', gen: () => streamCerebras(allMsgs, cerebrasKey) });
           if (geminiKey)   providers.push({ name: 'Gemini', gen: () => streamGemini(messages, system, geminiKey) });
           if (claudeKey)   providers.push({ name: 'Claude', gen: () => streamClaude(messages, system, claudeKey) });
+          if (mistralKey) providers.push({ name: 'Mistral', gen: () => streamMistral(allMsgs, mistralKey) });
         }
 
         // Always add fallbacks
