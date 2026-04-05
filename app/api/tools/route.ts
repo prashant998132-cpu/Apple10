@@ -306,6 +306,81 @@ async function handleTool(tool: string, p: any): Promise<any> {
       return `**BMR:** ${Math.round(bmr)} kcal/day\n**TDEE (maintenance):** ${Math.round(tdee)} kcal/day\nWeight loss: ${Math.round(tdee - 500)} kcal/day`;
     }
 
+
+    // ── SIP Calculator ───────────────────────────────────────
+    case 'calc_sip': {
+      const { monthly, rate, years } = p;
+      const r = rate / 12 / 100;
+      const n = years * 12;
+      const maturity = monthly * ((Math.pow(1 + r, n) - 1) / r) * (1 + r);
+      const invested = monthly * n;
+      const returns = maturity - invested;
+      return `**SIP Calculator Results**\n💰 Monthly Investment: ₹${Number(monthly).toLocaleString('en-IN')}\n📅 Duration: ${years} years (${n} months)\n📈 Expected Return: ${rate}% p.a.\n\n**Maturity Amount: ₹${Math.round(maturity).toLocaleString('en-IN')}**\nTotal Invested: ₹${invested.toLocaleString('en-IN')}\nWealth Gained: ₹${Math.round(returns).toLocaleString('en-IN')} (${Math.round(returns/invested*100)}%)`;
+    }
+
+    // ── BMI Calculator ───────────────────────────────────────
+    case 'calc_bmi': {
+      const { weight, height } = p; // height in cm
+      const hm = height / 100;
+      const bmi = weight / (hm * hm);
+      const cat = bmi < 18.5 ? 'Underweight' : bmi < 25 ? 'Normal ✅' : bmi < 30 ? 'Overweight ⚠️' : 'Obese ❌';
+      const ideal_low = Math.round(18.5 * hm * hm);
+      const ideal_high = Math.round(24.9 * hm * hm);
+      return `**BMI: ${bmi.toFixed(1)}** — ${cat}\nHeight: ${height}cm | Weight: ${weight}kg\nIdeal weight range: ${ideal_low}–${ideal_high} kg\n\n${bmi > 25 ? `Lose ${Math.round(weight - ideal_high)} kg for normal range` : bmi < 18.5 ? `Gain ${Math.round(ideal_low - weight)} kg for normal range` : 'Aap normal range mein hain! 💪'}`;
+    }
+
+    // ── Unit Converter ───────────────────────────────────────
+    case 'convert_unit': {
+      const { value, from, to } = p;
+      const conversions: Record<string, Record<string, number>> = {
+        km: { mile: 0.621371, meter: 1000, cm: 100000, ft: 3280.84 },
+        mile: { km: 1.60934, meter: 1609.34 },
+        kg: { lb: 2.20462, gram: 1000, oz: 35.274 },
+        lb: { kg: 0.453592, gram: 453.592 },
+        celsius: { fahrenheit: 0, kelvin: 0 }, // special case
+        liter: { ml: 1000, gallon: 0.264172, cup: 4.22675 },
+        hectare: { acre: 2.47105, sqm: 10000 },
+        acre: { hectare: 0.404686 },
+      };
+      if (from === 'celsius') {
+        if (to === 'fahrenheit') return `${value}°C = ${(value * 9/5 + 32).toFixed(2)}°F`;
+        if (to === 'kelvin') return `${value}°C = ${(value + 273.15).toFixed(2)}K`;
+      }
+      const factor = conversions[from]?.[to];
+      if (!factor) return `${from} se ${to} conversion available nahi.`;
+      return `**${value} ${from} = ${(value * factor).toFixed(4)} ${to}**`;
+    }
+
+    // ── Pincode Info ─────────────────────────────────────────
+    case 'get_pincode': {
+      const { pincode } = p;
+      const r = await fetch(`https://api.postalpincode.in/pincode/${pincode}`, { signal: AbortSignal.timeout(5000) });
+      const d = await r.json();
+      if (d[0]?.Status !== 'Success') return `Pincode ${pincode} ki info nahi mili.`;
+      const offices = d[0].PostOffice?.slice(0, 3);
+      return `**Pincode ${pincode}**\n📍 ${offices?.map((o: any) => `${o.Name}, ${o.District}, ${o.State}`).join('\n📍 ')}`;
+    }
+
+    // ── EMI Calculator ───────────────────────────────────────
+    case 'calc_emi': {
+      const { principal, rate, years } = p;
+      const r = rate / 12 / 100;
+      const n = years * 12;
+      const emi = principal * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1);
+      const total = emi * n;
+      const interest = total - principal;
+      return `**EMI Calculator**\nLoan: ₹${Number(principal).toLocaleString('en-IN')} @ ${rate}% for ${years} years\n\n**Monthly EMI: ₹${Math.round(emi).toLocaleString('en-IN')}**\nTotal Payment: ₹${Math.round(total).toLocaleString('en-IN')}\nTotal Interest: ₹${Math.round(interest).toLocaleString('en-IN')} (${Math.round(interest/principal*100)}% extra)`;
+    }
+
+    // ── ISS Live Location ─────────────────────────────────────
+    case 'get_iss': {
+      const r = await fetch('http://api.open-notify.org/iss-now.json', { signal: AbortSignal.timeout(5000) });
+      const d = await r.json();
+      const { latitude, longitude } = d.iss_position;
+      return `🛸 **ISS Location (Live)**\nLat: ${parseFloat(latitude).toFixed(2)}° | Lon: ${parseFloat(longitude).toFixed(2)}°\nSpeed: ~27,600 km/h\nOrbiting ${Math.round(408)} km above Earth`;
+    }
+
+
     default:
       return `Tool "${tool}" available nahi hai.`;
   }
