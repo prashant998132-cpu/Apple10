@@ -22,11 +22,32 @@ const CATEGORIES = [
 const COLORS = ['#1e293b', '#1a1a2e', '#0f2027', '#1c1c1c', '#0d1117'];
 
 function loadNotes(): Note[] {
-  try { return JSON.parse(localStorage.getItem('jarvis_notes') || '[]'); }
+  try {
+    const manual: Note[] = JSON.parse(localStorage.getItem('jarvis_notes') || '[]');
+    // Also load notes saved from chat (MessageBubble 📌 button)
+    const fromChat = JSON.parse(localStorage.getItem('jarvis_saved_notes') || '[]');
+    const chatNotes: Note[] = fromChat.map((n: any) => ({
+      id: n.id,
+      text: n.content || n.text || '',
+      category: 'idea',
+      pinned: false,
+      ts: n.ts || n.id,
+      color: '#0f2027',
+    }));
+    // Merge, deduplicate by id, manual first
+    const allIds = new Set(manual.map(n => n.id));
+    const merged = [...manual, ...chatNotes.filter(n => !allIds.has(n.id))];
+    return merged.sort((a, b) => b.ts - a.ts);
+  }
   catch { return []; }
 }
 function saveNotes(n: Note[]) {
-  try { localStorage.setItem('jarvis_notes', JSON.stringify(n)); } catch {}
+  // Only save manual notes (not chat-sourced ones which are in jarvis_saved_notes)
+  try {
+    const manual = n.filter(note => note.color !== '#0f2027' || note.category !== 'idea');
+    // Keep all non-chat notes + any manually edited ones
+    localStorage.setItem('jarvis_notes', JSON.stringify(n));
+  } catch {}
 }
 
 export default function NotesPage() {
