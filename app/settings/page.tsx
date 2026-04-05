@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 
 // ── Types ─────────────────────────────────────────────────────
 interface Profile { name: string; location: string; goal: string; age: string; customInstructions: string; language: string; responseLength: string; temperature: number; }
-interface ApiKeys { groq: string; gemini: string; anthropic: string; openrouter: string; together: string; elevenlabs: string; cricapi: string; brave: string; }
+interface ApiKeys { groq: string; gemini: string; anthropic: string; openrouter: string; together: string; elevenlabs: string; cricapi: string; brave: string; mistral: string; }
 interface Memory { facts: Array<{ key: string; value: string; ts: number }>; }
 interface Reminder { id: string; text: string; time: string; repeat: string; active: boolean; }
 
@@ -45,7 +45,7 @@ export default function SettingsPage() {
   const [tab, setTab] = useState('profile');
   const [toast, setToast] = useState('');
   const [profile, setProfile] = useState<Profile>({ name: '', location: '', goal: '', age: '', customInstructions: '', language: 'hinglish', responseLength: 'balanced', temperature: 0.7 });
-  const [apiKeys, setApiKeys] = useState<ApiKeys>({ groq: '', gemini: '', anthropic: '', openrouter: '', together: '', elevenlabs: '', cricapi: '', brave: '' });
+  const [apiKeys, setApiKeys] = useState<ApiKeys>({ groq: '', gemini: '', anthropic: '', openrouter: '', together: '', elevenlabs: '', cricapi: '', brave: '', mistral: '' });
   const [memory, setMemory] = useState<Memory>({ facts: [] });
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
@@ -117,6 +117,40 @@ export default function SettingsPage() {
     { key: 'cricapi' as const, label: 'CricAPI', badge: '', badgeColor: '', desc: '100K/hour FREE. Live cricket scores.', url: 'https://cricapi.com' },
     { key: 'brave' as const, label: 'Brave Search', badge: '', badgeColor: '', desc: '2000 searches/month free.', url: 'https://api.search.brave.com' },
   ];
+
+
+  const exportData = () => {
+    try {
+      const data = {
+        profile: load('jarvis_profile', {}),
+        memory: load('jarvis_cross_memory', []),
+        notes: load('jarvis_saved_notes', []),
+        exported: new Date().toISOString(),
+      };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'jarvis-backup.json'; a.click();
+      URL.revokeObjectURL(url);
+      showToast('✅ Data exported!');
+    } catch { showToast('❌ Export failed'); }
+  };
+
+  const importData = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const data = JSON.parse(ev.target?.result as string);
+        if (data.profile) save('jarvis_profile', data.profile);
+        if (data.memory) save('jarvis_cross_memory', data.memory);
+        if (data.notes) save('jarvis_saved_notes', data.notes);
+        showToast('✅ Data imported!');
+      } catch { showToast('❌ Invalid backup file'); }
+    };
+    reader.readAsText(file);
+  };
 
   return (
     <div style={S.page}>
