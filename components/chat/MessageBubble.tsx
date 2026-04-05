@@ -30,6 +30,21 @@ export default function MessageBubble({message:msg,onLike,onSpeak,onCopy,onPin,o
 
   const handleCopy = () => { navigator.clipboard.writeText(msg.content).catch(()=>{}); setCopied(true); setTimeout(()=>setCopied(false),1800); onCopy(); };
 
+
+  const saveToNotes = () => {
+    try {
+      const notes = JSON.parse(localStorage.getItem('jarvis_saved_notes') || '[]');
+      notes.unshift({ id: Date.now(), content: msg.content, ts: msg.ts, from: 'JARVIS' });
+      localStorage.setItem('jarvis_saved_notes', JSON.stringify(notes.slice(0, 100)));
+      // Quick toast via DOM
+      const t = document.createElement('div');
+      t.textContent = '📌 Saved to Notes!';
+      t.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#6366f1;color:#fff;padding:8px 18px;border-radius:99px;font-size:12px;font-weight:700;z-index:9999;pointer-events:none;';
+      document.body.appendChild(t);
+      setTimeout(() => t.remove(), 2000);
+    } catch {}
+  };
+
   const shareWhatsApp = () => {
     const text = msg.role==='user' ? msg.content : `JARVIS:\n${msg.content}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`,'_blank');
