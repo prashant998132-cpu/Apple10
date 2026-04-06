@@ -6,8 +6,10 @@ import { NextRequest, NextResponse } from 'next/server';
 export const runtime = 'nodejs';
 
 export async function GET(req: NextRequest) {
+  // Security: Accept Vercel's own cron header OR manual secret
+  const isVercelCron = req.headers.get('x-vercel-cron') === '1';
   const secret = req.nextUrl.searchParams.get('secret');
-  if (process.env.CRON_SECRET && secret !== process.env.CRON_SECRET) {
+  if (!isVercelCron && secret !== process.env.CRON_SECRET) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
