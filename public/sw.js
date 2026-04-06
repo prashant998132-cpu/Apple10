@@ -1,4 +1,4 @@
-const C='jarvis-v11';const O='/offline.html';
+const C='jarvis-v12';const O='/offline.html';
 
 self.addEventListener('install',e=>{
   e.waitUntil(caches.open(C).then(c=>c.addAll(['/','offline.html','/icons/icon-192.png','/icons/icon-512.png','/icons/maskable-192.png']).catch(()=>{})));
