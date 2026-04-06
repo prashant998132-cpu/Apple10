@@ -38,6 +38,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <link rel="preconnect" href="https://api.groq.com" />
+        <link rel="preconnect" href="https://generativelanguage.googleapis.com" />
+        <link rel="dns-prefetch" href="https://api.anthropic.com" />
+        <link rel="dns-prefetch" href="https://api.together.xyz" />
+        <link rel="dns-prefetch" href="https://api.cerebras.ai" />
+        <link rel="dns-prefetch" href="https://text.pollinations.ai" />
+        <link rel="dns-prefetch" href="https://openrouter.ai" />
         <link rel="dns-prefetch" href="https://api.open-meteo.com" />
         <link rel="dns-prefetch" href="https://api.coingecko.com" />
       </head>
