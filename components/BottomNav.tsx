@@ -31,6 +31,7 @@ export default function BottomNav() {
     { path: '/quiz',        icon: '🧠', label: 'Quiz'  },
     { path: '/vault',       icon: '🗄️', label: 'Vault' },
     { path: '/neet',        icon: '🎓', label: 'NEET' },
+    { path: '/study',       icon: '📚', label: 'Study' },
     { path: '/target',      icon: '🎯', label: 'Goals' },
     { path: '/india',       icon: '🇮🇳', label: 'India' },
     { path: '/settings',    icon: '⚙️', label: 'Settings' },
