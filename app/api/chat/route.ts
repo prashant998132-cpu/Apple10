@@ -19,10 +19,10 @@ export async function POST(req: NextRequest) {
             { role: 'system', content: system || 'Tu JARVIS hai. Hinglish mein baat kar.' },
             { role: 'user', content: message },
           ],
-          max_tokens: 500,
+          max_tokens: 1500,
           temperature: 0.7,
         }),
-        signal: AbortSignal.timeout(10000),
+        signal: AbortSignal.timeout(15000),
       });
       if (r.ok) {
         const d = await r.json();
@@ -37,9 +37,9 @@ export async function POST(req: NextRequest) {
         body: JSON.stringify({
           contents: [{ role: 'user', parts: [{ text: message }] }],
           systemInstruction: { parts: [{ text: system || 'Tu JARVIS hai.' }] },
-          generationConfig: { maxOutputTokens: 300 },
+          generationConfig: { maxOutputTokens: 1500 },
         }),
-        signal: AbortSignal.timeout(12000),
+        signal: AbortSignal.timeout(20000),
       });
       if (r.ok) {
         const d = await r.json();
@@ -51,8 +51,8 @@ export async function POST(req: NextRequest) {
     const r = await fetch('https://text.pollinations.ai/openai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'openai', messages: [{ role: 'user', content: message }], max_tokens: 200 }),
-      signal: AbortSignal.timeout(15000),
+      body: JSON.stringify({ model: 'openai', messages: [{ role: 'user', content: message }], max_tokens: 1200 }),
+      signal: AbortSignal.timeout(20000),
     });
     if (r.ok) {
       const d = await r.json();
