@@ -21,7 +21,7 @@ const TOOL_DECLARATIONS = [
 
 async function callTool(name: string, args: any): Promise<string> {
   try {
-    const r = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'https://apple10.vercel.app'}/api/tools`, {
+    const r = await fetch(`${process.env.VERCEL_URL ? 'https://' + process.env.VERCEL_URL : process.env.NEXT_PUBLIC_APP_URL || 'https://apple10.vercel.app'}/api/tools`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ tool: name, params: args }),
