@@ -37,6 +37,9 @@ export interface Profile {
   name?: string;
   nickname?: string;
   city?: string;
+  location?: string;
+  goal?: string;
+  customInstructions?: string;
   interests?: string[];
   xp: number;
   level: number;
@@ -44,7 +47,8 @@ export interface Profile {
   lastActive: number;
   totalMessages: number;
   badges: string[];
-  personality: 'default' | 'motivation' | 'chill' | 'focus' | 'philosopher' | 'roast';
+  // Matches PersonalityMode in intelligence.ts
+  personality: 'default' | 'fun' | 'serious' | 'motivational' | 'sarcastic' | 'roast' | 'philosopher' | 'teacher' | 'study' | 'code';
   thinkMode: 'auto' | 'flash' | 'think' | 'deep';
   theme: 'dark' | 'light' | 'amoled';
   pinHash?: string;
