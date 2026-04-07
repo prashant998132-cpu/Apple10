@@ -63,6 +63,11 @@ export default function NEETPage() {
   const [mockScore, setMockScore] = useState({ ph: '', ch: '', bi: '', res: '' });
 
   useEffect(() => {
+    // Load saved progress
+    try {
+      const saved = localStorage.getItem('neet_progress');
+      if (saved) setProgress(JSON.parse(saved));
+    } catch {}
     const diff = NEET_DATE.getTime() - Date.now();
     setDaysLeft(Math.max(0, Math.floor(diff / 86400000)));
     // Load progress
@@ -176,6 +181,7 @@ export default function NEETPage() {
             })}
           </div>
 
+          {/* Progress bar */}
           {(() => {
             const p = subjectProgress(activeSubject);
             return (
@@ -191,6 +197,7 @@ export default function NEETPage() {
             );
           })()}
 
+          {/* Chapter list */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
             {CHAPTERS[activeSubject].map((ch, i) => {
               const done = progress[activeSubject + '_' + i];
