@@ -3,18 +3,11 @@ import { useState, useEffect, useRef } from 'react';
 
 interface Message { role: 'user' | 'ai'; text: string; time: string; }
 
-function getMitraSystem(): string {
-  try {
-    if (typeof window !== 'undefined') {
-      const p = JSON.parse(localStorage.getItem('jarvis_profile') || '{}');
-      const name = p.name || 'Bhai';
-      const goal = p.goal ? ` ${p.goal} preparation mein support karo.` : '';
-      return `Tu "Mitra" hai — ${name} ka sabse close AI dost. Tu ek caring, warm, real dost ki tarah baat karta hai.\n\nPERSONALITY:\n- Hinglish mein baat kar (Hindi + English mix)\n- ${name} ko "bhai" ya naam se bulao`;
-    }
-  } catch {}
-  return `Tu "Mitra" hai — ek caring, warm AI dost.\n\nPERSONALITY:\n- Hinglish mein baat kar (Hindi + English mix)\n- User ko "bhai" se bulao`;
-}
-const MITRA_SYSTEM_UNUSED = `placeholder
+const MITRA_SYSTEM = `Tu "Mitra" hai — Prashant ka sabse close AI dost. Tu ek caring, warm, real dost ki tarah baat karta hai.
+
+PERSONALITY:
+- Hinglish mein baat kar (Hindi + English mix)
+- Prashant ko "bhai" ya naam se bulao
 - Genuinely suno, feel samjho
 - Kabhi judge mat karo
 - Motivation do jab zaroorat ho
@@ -30,11 +23,29 @@ RULES:
 
 export default function MitraPage() {
   const [msgs, setMsgs] = useState<Message[]>([
-    { role: 'ai', text: (() => { try { const p = JSON.parse(typeof window !== 'undefined' ? localStorage.getItem('jarvis_profile') || '{}' : '{}'); const n = p.name || 'Bhai'; return `Arre ${n} bhai! 👋 Kya chal raha hai aaj? Bol freely — main hoon na yahan.`; } catch { return 'Arre bhai! 👋 Kya chal raha hai aaj? Bol freely — main hoon na yahan.'; } })(), time: now() }
+    { role: 'ai', text: 'Arre Prashant bhai! 👋 Kya chal raha hai aaj? Bol freely — main hoon na yahan.', time: now() }
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [mood, setMood] = useState('😊');
+  const [listening, setListening] = useState(false);
+
+  function startVoice() {
+    if (typeof window === 'undefined') return;
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) { alert('Voice input supported nahi hai is browser mein'); return; }
+    const recog = new SR();
+    recog.lang = 'hi-IN'; recog.continuous = false; recog.interimResults = false;
+    recog.onstart = () => setListening(true);
+    recog.onend = () => setListening(false);
+    recog.onresult = (e: any) => {
+      const text = e.results[0][0].transcript;
+      setInput(text);
+      setListening(false);
+    };
+    recog.onerror = () => setListening(false);
+    recog.start();
+  }
   const bottomRef = useRef<HTMLDivElement>(null);
 
   function now() {
