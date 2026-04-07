@@ -20,6 +20,8 @@ export const FEATURE_MAP = {
       { name: 'Kimi K2 (OR)',       key: 'OPENROUTER_API_KEY', free: true, limit: '1000/day',   quality: 5, speed: 3 },
       { name: 'Gemma-3-27B (OR)',   key: 'OPENROUTER_API_KEY', free: true, limit: 'free',        quality: 3, speed: 3 },
       { name: 'Pollinations',       key: null,               free: true,  limit: 'unlimited',   quality: 3, speed: 3 },
+      { name: 'Grok Mini (OR)',     key: 'OPENROUTER_API_KEY', free: true, limit: '100/day',     quality: 4, speed: 4, note: 'xAI Grok 3 mini' },
+      { name: 'Cohere Cmd R+ (OR)', key: 'OPENROUTER_API_KEY', free: true, limit: 'free',          quality: 4, speed: 3, note: 'Cohere via OR' },
     ],
   },
 
