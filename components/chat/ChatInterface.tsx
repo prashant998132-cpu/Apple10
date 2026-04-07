@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { detectConversationMode, detectEmotion, detectThinkMode, getSystemPrompt, keywordFallback, PersonalityMode } from '@/lib/intelligence';
 import { addXP, updateStreak, getProfile, saveMemory, extractProfileInfo, logEmotion, trackTopic, getRelationshipName } from '@/lib/memory';
 import { getLocation, getCachedLocation, formatLocation } from '@/lib/location';
+import AchievementToast, { triggerAchievement } from '@/components/AchievementToast';
 import { startProactiveEngine, speakText } from '@/lib/proactive';
 import { searchMemoryVectors, storeMemoryVector } from '@/lib/vectorMemory';
 import { syncMessageToCloud } from '@/lib/supabase';
@@ -254,22 +255,10 @@ export default function ChatInterface() {
 
     const profileRaw = typeof window !== 'undefined' ? localStorage.getItem('jarvis_profile') : null;
     const profile = profileRaw ? JSON.parse(profileRaw) : {};
-    const memories = getRelevantMemories(userText, 8);
+    const memories = getRelevantMemories(userText, 6);
     const emotion = detectEmotion(userText);
     const mode = detectThinkMode(userText, thinkMode);
-
-    // ── Auto tool engine ──────────────────────────────────────
-    let toolResults: string[] = [];
-    if (queryNeedsTools(userText)) {
-      setToolsRunning(true);
-      try {
-        const results = await runAutonomousTools(userText);
-        toolResults = results.map(r => r.data ? String(r.data) : '').filter(Boolean);
-      } catch {}
-      setToolsRunning(false);
-    }
-
-    const system = getSystemPrompt(personality, profile, memories, emotion, new Date().getHours(), toolResults.length ? toolResults : undefined);
+    const system = getSystemPrompt(personality, profile, memories, emotion, new Date().getHours());
 
     try {
       const ctrl = new AbortController();
@@ -277,7 +266,7 @@ export default function ChatInterface() {
       const r = await fetch('/api/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: messages.filter(m => m.id !== 'welcome').slice(-20).map(m => ({ role: m.role, content: m.content })).concat([{ role: 'user', content: userText }]), system, mode }),
+        body: JSON.stringify({ messages: messages.filter(m => m.id !== 'welcome').slice(-12).map(m => ({ role: m.role, content: m.content })).concat([{ role: 'user', content: userText }]), system, mode }),
         signal: ctrl.signal,
       });
       if (!r.ok || !r.body) throw new Error('Stream failed');
@@ -298,14 +287,14 @@ export default function ChatInterface() {
         }
       }
       extractAndStoreFacts(userText, full);
-      storeMemoryVector(userText, full).catch(() => {});
       addXP(10);
-      try { if(typeof window!=='undefined') localStorage.setItem('jarvis_last_chat_date', new Date().toDateString()); } catch {}
     } catch (e: any) {
       if (e?.name !== 'AbortError') {
         const fb = keywordFallback(userText);
         const errMsg = (e?.message || '').includes('fetch') || (e?.message || '').includes('network')
-          ? `⚠️ Net slow lag raha hai. Dobara try karo. ${fb}`
+          ? '⚠️ Net slow lag raha hai. Dobara try karo.
+
+' + fb
           : fb;
         setMessages(prev => [...prev, { id: 'err_' + Date.now(), role: 'assistant', content: errMsg, ts: Date.now() }]);
       }
@@ -314,28 +303,6 @@ export default function ChatInterface() {
     clearBadge();
     setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
   }, [input, loading, messages, thinkMode, personality]);
-
-
-  const handlePersonalityChange = useCallback((p: PersonalityMode) => {
-    setPersonality(p);
-    // Persist personality to profile
-    try {
-      const raw = localStorage.getItem('jarvis_profile');
-      const profile = raw ? JSON.parse(raw) : {};
-      profile.personality = p;
-      localStorage.setItem('jarvis_profile', JSON.stringify(profile));
-    } catch {}
-  }, []);
-
-  const handleModeChange = useCallback((m: string) => {
-    setThinkMode(m as any);
-    try {
-      const raw = localStorage.getItem('jarvis_profile');
-      const profile = raw ? JSON.parse(raw) : {};
-      profile.thinkMode = m;
-      localStorage.setItem('jarvis_profile', JSON.stringify(profile));
-    } catch {}
-  }, []);
 
   const pinnedList = messages.filter(m => m.pinned);
 
@@ -422,7 +389,6 @@ export default function ChatInterface() {
         </div>
       </div>
 
-      <ModeBar mode={thinkMode} onModeChange={handleModeChange} personality={personality} onPersonalityChange={handlePersonalityChange} />
       <div className="flex-shrink-0 px-4 pb-5 pt-1 bg-gradient-to-t from-[#0a0b0f] via-[#0a0b0f] to-transparent">
         <div className="max-w-2xl mx-auto">
           <InputBar
@@ -432,7 +398,7 @@ export default function ChatInterface() {
             onStop={() => abortRef.current?.abort()}
             onCompress={() => setShowCompress(true)}
             currentMode={thinkMode}
-            onModeChange={handleModeChange}
+            onModeChange={m => setThinkMode(m as any)}
             sessionId={sessionId}
             onSessionSelect={loadSession}
             toolsRunning={toolsRunning}
