@@ -1,5 +1,6 @@
 // ══════════════════════════════════════════════════════════════
-// JARVIS TRANSLATION API — v29
+// JARVIS TRANSLATION API — v45
+// NEW: Malayalam, Odia, Assamese, Nepali, Sindhi added
 // Research: LibreTranslate (open source, self-host or free),
 //           MyMemory (free 5000 chars/day), Google Translate
 //           (unofficial endpoint, no key), DeepL free tier
@@ -18,7 +19,7 @@ const LANG_MAP: Record<string, string> = {
   spanish: 'es', arabic: 'ar', chinese: 'zh', japanese: 'ja',
   korean: 'ko', portuguese: 'pt', russian: 'ru', italian: 'it',
   bengali: 'bn', tamil: 'ta', telugu: 'te', marathi: 'mr',
-  gujarati: 'gu', punjabi: 'pa', urdu: 'ur', kannada: 'kn',
+  gujarati: 'gu', punjabi: 'pa', urdu: 'ur', kannada: 'kn', malayalam: 'ml', odia: 'or', assamese: 'as', nepali: 'ne', sindhi: 'sd',
   h: 'hi', e: 'en', hi: 'hi', en: 'en',
 };
 
