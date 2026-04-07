@@ -381,10 +381,133 @@ async function handleTool(tool: string, p: any): Promise<any> {
     }
 
 
+
+    // ── v45 NEW: Gold Price ───────────────────────────────────────
+    case 'get_gold_price': {
+      try {
+        const r = await fetch('https://api.metals.live/v1/spot/gold,silver', { signal: AbortSignal.timeout(5000) });
+        const d = await r.json();
+        const goldUSD = d[0]?.price;
+        const silverUSD = d[1]?.price;
+        const usdToInr = 84;
+        if (goldUSD) {
+          const goldInr10g = Math.round(goldUSD / 31.1035 * usdToInr * 10).toLocaleString('en-IN');
+          const goldInrGram = Math.round(goldUSD / 31.1035 * usdToInr).toLocaleString('en-IN');
+          const silverInrGram = silverUSD ? (silverUSD / 31.1035 * usdToInr).toFixed(2) : 'N/A';
+          return `**Live Gold & Silver Prices**\n🥇 Gold: ₹${goldInr10g} /10g | ₹${goldInrGram} /gram\n🥈 Silver: ₹${silverInrGram} /gram\n💵 Gold (USD): $${goldUSD.toFixed(2)}/troy oz\n⚡ Live rate — market hours mein update hota hai`;
+        }
+      } catch {}
+      return '**Gold Price (Approx)**\n🥇 Gold: ~₹95,000/10g\n💡 Live rate ke liye goodreturns.in check karo';
+    }
+
+    // ── v45 NEW: Fuel Prices ──────────────────────────────────────
+    case 'get_fuel_price': {
+      const fuelPrices: Record<string, { petrol: number; diesel: number }> = {
+        delhi:     { petrol: 94.72, diesel: 87.62 },
+        mumbai:    { petrol: 103.44, diesel: 89.97 },
+        bangalore: { petrol: 102.86, diesel: 88.94 },
+        chennai:   { petrol: 100.75, diesel: 92.34 },
+        kolkata:   { petrol: 103.94, diesel: 90.76 },
+        hyderabad: { petrol: 107.41, diesel: 95.65 },
+        pune:      { petrol: 103.57, diesel: 90.09 },
+        ahmedabad: { petrol: 96.41, diesel: 92.23 },
+        jaipur:    { petrol: 104.88, diesel: 90.36 },
+        lucknow:   { petrol: 94.65, diesel: 87.76 },
+      };
+      const city = (p.city || 'delhi').toLowerCase().trim();
+      const prices = fuelPrices[city] || fuelPrices.delhi;
+      const cityLabel = fuelPrices[city] ? city.charAt(0).toUpperCase() + city.slice(1) : 'Delhi (default)';
+      return `**⛽ Fuel Prices — ${cityLabel}**\n🟢 Petrol: ₹${prices.petrol}/litre\n🔵 Diesel: ₹${prices.diesel}/litre\n\n📅 Rates approximate (April 2026)\n💡 iocl.com pe exact rates milte hain`;
+    }
+
+    // ── v45 NEW: Random Fact ──────────────────────────────────────
+    case 'get_random_fact': {
+      try {
+        const r = await fetch('https://uselessfacts.jsph.pl/api/v2/facts/random?language=en', { signal: AbortSignal.timeout(5000) });
+        const d = await r.json();
+        return `🤯 **Interesting Fact**\n${d.text}`;
+      } catch {
+        const facts = [
+          'Honey never expires — 3000 year old honey found in Egyptian tombs was still edible!',
+          'Octopuses have 3 hearts and blue blood!',
+          'Bananas are berries but strawberries are NOT berries!',
+          'The Eiffel Tower grows 15cm taller in summer due to heat expansion.',
+          'Cleopatra lived closer in time to the Moon landing than to the construction of the Great Pyramid.',
+        ];
+        return `🤯 **Interesting Fact**\n${facts[Math.floor(Math.random() * facts.length)]}`;
+      }
+    }
+
+    // ── v45 NEW: IP Lookup ────────────────────────────────────────
+    case 'get_ip_info': {
+      try {
+        const ip = p.ip || '';
+        const url = ip ? `https://ipapi.co/${ip}/json/` : 'https://ipapi.co/json/';
+        const r = await fetch(url, { signal: AbortSignal.timeout(5000) });
+        const d = await r.json();
+        return `**🌐 IP Info${ip ? ` for ${ip}` : ' (Your IP)'}**\nIP: ${d.ip}\nCity: ${d.city}, ${d.region}\nCountry: ${d.country_name}\nISP: ${d.org}\nTimezone: ${d.timezone}\nCoords: ${d.latitude}, ${d.longitude}`;
+      } catch {
+        return 'IP info load nahi hua.';
+      }
+    }
+
+    // ── v45 NEW: Dad Joke ─────────────────────────────────────────
+    case 'get_dadjoke': {
+      try {
+        const r = await fetch('https://icanhazdadjoke.com/', { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(5000) });
+        const d = await r.json();
+        return `😄 **Dad Joke**\n${d.joke}`;
+      } catch {
+        return '😄 Why do programmers prefer dark mode? Because light attracts bugs! 🐛';
+      }
+    }
+
+    // ── v45 NEW: Trivia ───────────────────────────────────────────
+    case 'get_trivia': {
+      try {
+        const r = await fetch('https://opentdb.com/api.php?amount=1&type=multiple&difficulty=medium', { signal: AbortSignal.timeout(5000) });
+        const d = await r.json();
+        const q = d.results?.[0];
+        if (!q) throw new Error('no trivia');
+        const allOptions = [...q.incorrect_answers, q.correct_answer].sort(() => Math.random() - 0.5);
+        const clean = (s: string) => s.replace(/&quot;/g, '"').replace(/&#039;/g, "'").replace(/&amp;/g, '&');
+        return `🧠 **Trivia** (${q.difficulty})\n${clean(q.question)}\n\n${allOptions.map((o: string, i: number) => `${String.fromCharCode(65+i)}) ${clean(o)}`).join('\n')}\n\n||Answer: **${clean(q.correct_answer)}**||`;
+      } catch {
+        return '🧠 Which planet has the most moons?\nA) Jupiter B) Saturn C) Uranus D) Neptune\n||Answer: Saturn (146+ moons)||';
+      }
+    }
+
+    // ── v45 NEW: Country Info ─────────────────────────────────────
+    case 'get_country': {
+      try {
+        const { country } = p;
+        const r = await fetch(`https://restcountries.com/v3.1/name/${encodeURIComponent(country)}?fields=name,capital,population,currencies,languages,flags,region,subregion`, { signal: AbortSignal.timeout(5000) });
+        const d = await r.json();
+        const c = d[0];
+        if (!c) return `Country "${country}" nahi mila.`;
+        const currency = Object.values(c.currencies || {})[0] as any;
+        const lang = Object.values(c.languages || {}).join(', ');
+        return `🌍 **${c.name.common}** ${c.flags?.emoji || ''}\n🏛️ Capital: ${c.capital?.[0]}\n👥 Population: ${(c.population / 1e6).toFixed(1)}M\n💰 Currency: ${currency?.name} (${currency?.symbol})\n🗣️ Language: ${lang}\n🌐 Region: ${c.subregion}`;
+      } catch {
+        return 'Country info load nahi hua.';
+      }
+    }
+
+    // ── v45 NEW: Lucky Numbers ────────────────────────────────────
+    case 'get_lucky': {
+      const num1 = Math.floor(Math.random() * 100) + 1;
+      const num2 = Math.floor(Math.random() * 9) + 1;
+      const colors = ['Red 🔴', 'Blue 💙', 'Green 💚', 'Gold 🌟', 'Purple 💜', 'Orange 🟠', 'White ⚪'];
+      const affirmations = [
+        'Aaj ka din tera hai — uthja aur jeet! 💪',
+        'Har mushkil ek naya mauka hai — go for it! 🚀',
+        'Tu jo chahega, woh hoga — believe karo! ✨',
+        'Kaam karte raho, results zaroor aayenge! 🎯',
+      ];
+      return `🍀 **Lucky Vibes for Today**\n🎲 Lucky Number: **${num1}** (single: ${num2})\n🎨 Lucky Color: **${colors[Math.floor(Math.random() * colors.length)]}**\n✨ ${affirmations[Math.floor(Math.random() * affirmations.length)]}`;
+    }
+
     default:
       return `Tool "${tool}" available nahi hai.`;
   }
 }
-
-// These go inside the switch in handleTool — adding more tools by appending
-// The full list is already in the switch, these extend it further
