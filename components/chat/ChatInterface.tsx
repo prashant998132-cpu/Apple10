@@ -287,14 +287,13 @@ export default function ChatInterface() {
         }
       }
       extractAndStoreFacts(userText, full);
-      addXP(10);
+      const xpRes = await addXP(10).catch(() => null);
+      if (xpRes?.leveled) triggerAchievement(`Level ${xpRes.level} Unlocked! 🚀`, 50);
     } catch (e: any) {
       if (e?.name !== 'AbortError') {
         const fb = keywordFallback(userText);
         const errMsg = (e?.message || '').includes('fetch') || (e?.message || '').includes('network')
-          ? '⚠️ Net slow lag raha hai. Dobara try karo.
-
-' + fb
+          ? `⚠️ Net slow lag raha hai. Dobara try karo.\n\n${fb}`
           : fb;
         setMessages(prev => [...prev, { id: 'err_' + Date.now(), role: 'assistant', content: errMsg, ts: Date.now() }]);
       }
