@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import { triggerAchievement } from '@/components/AchievementToast';
 
 interface Habit { id:string; name:string; emoji:string; streak:number; lastDone:string; history:string[]; color:string; }
 
@@ -44,6 +45,14 @@ export default function HabitsPage() {
     });
     save(updated);
     if(navigator.vibrate) navigator.vibrate(50);
+    // XP for completing habit
+    try {
+      const p = JSON.parse(localStorage.getItem('jarvis_profile') || '{}');
+      p.xp = (p.xp || 0) + 5;
+      localStorage.setItem('jarvis_profile', JSON.stringify(p));
+      if (newStreak % 7 === 0 && newStreak > 0) triggerAchievement(`${newStreak} Day Streak! 🔥`, 25);
+      else triggerAchievement('Habit Done! ✅', 5);
+    } catch {}
   };
 
   const addHabit = () => {
