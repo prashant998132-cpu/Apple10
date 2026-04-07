@@ -1,4 +1,4 @@
-// JARVIS AI STREAM v43 — Parallel Race + Error Messages + Stability
+// JARVIS AI STREAM v45 — claude-sonnet-4-6 + Grok + Gemini 2.5 Pro + Higher Tokens
 import { NextRequest } from 'next/server';
 
 export const runtime = 'nodejs';
@@ -46,25 +46,25 @@ async function* streamSSE(r: Response): AsyncGenerator<string> {
   }
 }
 
-async function* streamGroq(messages: any[], model: string, key: string): AsyncGenerator<string> {
+async function* streamGroq(messages: any[], model: string, key: string, maxTok = 2000): AsyncGenerator<string> {
   const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
-    body: JSON.stringify({ model, messages, stream: true, max_tokens: 1500, temperature: 0.7 }),
+    body: JSON.stringify({ model, messages, stream: true, max_tokens: maxTok, temperature: 0.7 }),
     signal: AbortSignal.timeout(15000),
   });
   if (!r.ok) throw new Error(`Groq ${r.status}`);
   yield* streamSSE(r);
 }
 
-async function* streamGemini(messages: any[], system: string, key: string): AsyncGenerator<string> {
+async function* streamGemini(messages: any[], system: string, key: string, model = 'gemini-2.5-flash', maxTok = 2000): AsyncGenerator<string> {
   const contents = messages
     .filter(m => m.role !== 'system')
     .map(m => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content || ' ' }] }));
   if (!contents.length) throw new Error('No contents');
-  const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=${key}`, {
+  const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${key}`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ contents, systemInstruction: { parts: [{ text: system }] }, generationConfig: { maxOutputTokens: 1500 } }),
-    signal: AbortSignal.timeout(20000),
+    body: JSON.stringify({ contents, systemInstruction: { parts: [{ text: system }] }, generationConfig: { maxOutputTokens: maxTok } }),
+    signal: AbortSignal.timeout(25000),
   });
   if (!r.ok) throw new Error(`Gemini ${r.status}`);
   const reader = r.body!.getReader(); const dec = new TextDecoder(); let buf = '';
@@ -78,14 +78,15 @@ async function* streamGemini(messages: any[], system: string, key: string): Asyn
   }
 }
 
-async function* streamClaude(messages: any[], system: string, key: string): AsyncGenerator<string> {
+// ── claude-sonnet-4-6 (upgraded from haiku) ──────────────────────
+async function* streamClaude(messages: any[], system: string, key: string, maxTok = 4000): AsyncGenerator<string> {
   const msgs = messages.filter(m => m.role !== 'system' && m.content).map(m => ({ role: m.role, content: m.content }));
   if (!msgs.length) throw new Error('No messages');
   const r = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
-    body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 3000, system: system || 'You are JARVIS.', messages: msgs, stream: true }),
-    signal: AbortSignal.timeout(25000),
+    body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: maxTok, system: system || 'You are JARVIS.', messages: msgs, stream: true }),
+    signal: AbortSignal.timeout(30000),
   });
   if (!r.ok) throw new Error(`Claude ${r.status}`);
   const reader = r.body!.getReader(); const dec = new TextDecoder(); let buf = '';
@@ -109,11 +110,11 @@ async function* streamCerebras(messages: any[], key: string): AsyncGenerator<str
   yield* streamSSE(r);
 }
 
-async function* streamOpenRouter(messages: any[], key: string, model: string): AsyncGenerator<string> {
+async function* streamOpenRouter(messages: any[], key: string, model: string, maxTok = 2000): AsyncGenerator<string> {
   const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}`, 'HTTP-Referer': 'https://apple10.vercel.app' },
-    body: JSON.stringify({ model, messages, stream: true, max_tokens: 1500 }),
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}`, 'HTTP-Referer': 'https://apple10.vercel.app', 'X-Title': 'JARVIS AI' },
+    body: JSON.stringify({ model, messages, stream: true, max_tokens: maxTok }),
     signal: AbortSignal.timeout(25000),
   });
   if (!r.ok) throw new Error(`OR ${r.status}`);
@@ -123,7 +124,7 @@ async function* streamOpenRouter(messages: any[], key: string, model: string): A
 async function* streamTogether(messages: any[], key: string): AsyncGenerator<string> {
   const r = await fetch('https://api.together.xyz/v1/chat/completions', {
     method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
-    body: JSON.stringify({ model: 'meta-llama/Llama-3.3-70B-Instruct-Turbo-Free', messages, stream: true, max_tokens: 1500 }),
+    body: JSON.stringify({ model: 'meta-llama/Llama-3.3-70B-Instruct-Turbo-Free', messages, stream: true, max_tokens: 2000 }),
     signal: AbortSignal.timeout(20000),
   });
   if (!r.ok) throw new Error(`Together ${r.status}`);
@@ -133,22 +134,31 @@ async function* streamTogether(messages: any[], key: string): AsyncGenerator<str
 async function* streamDeepSeek(messages: any[], key: string): AsyncGenerator<string> {
   const r = await fetch('https://api.deepseek.com/v1/chat/completions', {
     method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
-    body: JSON.stringify({ model: 'deepseek-chat', messages, stream: true, max_tokens: 1500 }),
+    body: JSON.stringify({ model: 'deepseek-chat', messages, stream: true, max_tokens: 2000 }),
     signal: AbortSignal.timeout(20000),
   });
   if (!r.ok) throw new Error(`DeepSeek ${r.status}`);
   yield* streamSSE(r);
 }
 
-
 async function* streamMistral(messages: any[], key: string): AsyncGenerator<string> {
   const r = await fetch('https://api.mistral.ai/v1/chat/completions', {
     method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
-    body: JSON.stringify({ model: 'mistral-small-latest', messages, stream: true, max_tokens: 1500, temperature: 0.7 }),
+    body: JSON.stringify({ model: 'mistral-small-latest', messages, stream: true, max_tokens: 2000, temperature: 0.7 }),
     signal: AbortSignal.timeout(15000),
   });
   if (!r.ok) throw new Error(`Mistral ${r.status}`);
   yield* streamSSE(r);
+}
+
+// ── NEW: xAI Grok via OpenRouter ──────────────────────────────────
+async function* streamGrok(messages: any[], key: string): AsyncGenerator<string> {
+  yield* streamOpenRouter(messages, key, 'x-ai/grok-3-mini-beta:free', 2000);
+}
+
+// ── NEW: Cohere Command via OpenRouter ────────────────────────────
+async function* streamCohere(messages: any[], key: string): AsyncGenerator<string> {
+  yield* streamOpenRouter(messages, key, 'cohere/command-r-plus-08-2024:free', 2000);
 }
 
 async function* streamPollinations(messages: any[]): AsyncGenerator<string> {
@@ -184,28 +194,27 @@ async function raceProviders(
   onChunk: (chunk: string) => void,
   onProvider: (name: string) => void
 ): Promise<boolean> {
-  // Try first 3 providers in parallel, use fastest
   const fast = providers.slice(0, 3);
   const rest = providers.slice(3);
 
   let won = false;
-  let winnerAbort: AbortController | null = null;
+  const winnerChunks: string[] = [];
 
   const race = fast.map(async (p) => {
-    const chunks: string[] = [];
+    const localChunks: string[] = [];
     try {
       for await (const chunk of p.gen()) {
-        if (won && !chunks.length) return; // another won first
-        chunks.push(chunk);
-        if (chunks.length === 1 && !won) {
+        if (won && localChunks.length === 0) return false;
+        localChunks.push(chunk);
+        if (localChunks.length === 1 && !won) {
           won = true;
           onProvider(p.name);
-          for (const c of chunks) onChunk(c);
-        } else if (won && chunks.length > 1) {
+          for (const c of localChunks) onChunk(c);
+        } else if (won && localChunks.length > 1) {
           onChunk(chunk);
         }
       }
-      return chunks.length > 0;
+      return localChunks.length > 0;
     } catch (e: any) {
       console.warn('[' + p.name + '] failed:', e.message?.slice(0, 60));
       return false;
@@ -268,39 +277,43 @@ export async function POST(req: NextRequest) {
           try { controller.close(); } catch {}
         };
 
-        // Build providers based on mode
         const providers: Array<{ name: string; gen: () => AsyncGenerator<string> }> = [];
 
         if (mode === 'think') {
-          if (claudeKey)   providers.push({ name: 'Claude', gen: () => streamClaude(messages, system, claudeKey) });
-          if (groqKey)     providers.push({ name: 'Groq-R1', gen: () => streamGroq(allMsgs, 'deepseek-r1-distill-llama-70b', groqKey) });
-          if (deepseekKey) providers.push({ name: 'DeepSeek', gen: () => streamDeepSeek(allMsgs, deepseekKey) });
-          if (geminiKey)   providers.push({ name: 'Gemini', gen: () => streamGemini(messages, system, geminiKey) });
+          // Think mode: Reasoning-first providers
+          if (claudeKey)   providers.push({ name: 'Claude Sonnet', gen: () => streamClaude(messages, system, claudeKey, 5000) });
+          if (groqKey)     providers.push({ name: 'Groq-R1', gen: () => streamGroq(allMsgs, 'deepseek-r1-distill-llama-70b', groqKey, 3000) });
+          if (deepseekKey) providers.push({ name: 'DeepSeek-R1', gen: () => streamDeepSeek(allMsgs, deepseekKey) });
+          if (geminiKey)   providers.push({ name: 'Gemini Pro', gen: () => streamGemini(messages, system, geminiKey, 'gemini-2.5-pro-preview-06-05', 4000) });
+          if (orKey)       providers.push({ name: 'Grok', gen: () => streamGrok(allMsgs, orKey) });
         } else if (mode === 'deep') {
-          if (claudeKey)   providers.push({ name: 'Claude', gen: () => streamClaude(messages, system, claudeKey) });
-          if (geminiKey)   providers.push({ name: 'Gemini', gen: () => streamGemini(messages, system, geminiKey) });
+          // Deep mode: Highest quality
+          if (claudeKey)   providers.push({ name: 'Claude Sonnet', gen: () => streamClaude(messages, system, claudeKey, 6000) });
+          if (geminiKey)   providers.push({ name: 'Gemini Pro', gen: () => streamGemini(messages, system, geminiKey, 'gemini-2.5-pro-preview-06-05', 5000) });
+          if (orKey)       providers.push({ name: 'Grok', gen: () => streamGrok(allMsgs, orKey) });
           if (togetherKey) providers.push({ name: 'Together', gen: () => streamTogether(allMsgs, togetherKey) });
           if (deepseekKey) providers.push({ name: 'DeepSeek', gen: () => streamDeepSeek(allMsgs, deepseekKey) });
         } else {
-          // Flash/auto — parallel race: Groq vs Cerebras vs Gemini
-          if (groqKey)     providers.push({ name: 'Groq', gen: () => streamGroq(allMsgs, 'llama-3.3-70b-versatile', groqKey) });
+          // Flash/auto — parallel race: Groq vs Cerebras vs Gemini Flash (fastest)
+          if (groqKey)     providers.push({ name: 'Groq', gen: () => streamGroq(allMsgs, 'llama-3.3-70b-versatile', groqKey, 2000) });
           if (cerebrasKey) providers.push({ name: 'Cerebras', gen: () => streamCerebras(allMsgs, cerebrasKey) });
-          if (geminiKey)   providers.push({ name: 'Gemini', gen: () => streamGemini(messages, system, geminiKey) });
-          if (claudeKey)   providers.push({ name: 'Claude', gen: () => streamClaude(messages, system, claudeKey) });
-          if (mistralKey) providers.push({ name: 'Mistral', gen: () => streamMistral(allMsgs, mistralKey) });
+          if (geminiKey)   providers.push({ name: 'Gemini Flash', gen: () => streamGemini(messages, system, geminiKey, 'gemini-2.5-flash', 2000) });
+          if (claudeKey)   providers.push({ name: 'Claude Sonnet', gen: () => streamClaude(messages, system, claudeKey, 3000) });
+          if (mistralKey)  providers.push({ name: 'Mistral', gen: () => streamMistral(allMsgs, mistralKey) });
+          if (orKey)       providers.push({ name: 'Grok', gen: () => streamGrok(allMsgs, orKey) });
         }
 
         // Always add fallbacks
         if (togetherKey && mode === 'auto') providers.push({ name: 'Together', gen: () => streamTogether(allMsgs, togetherKey) });
-        if (orKey)       providers.push({ name: 'Kimi', gen: () => streamOpenRouter(allMsgs, orKey, 'moonshotai/kimi-k2-instruct:free') });
-        if (orKey)       providers.push({ name: 'Gemma', gen: () => streamOpenRouter(allMsgs, orKey, 'google/gemma-3-27b-it:free') });
+        if (orKey) providers.push({ name: 'Kimi K2', gen: () => streamOpenRouter(allMsgs, orKey, 'moonshotai/kimi-k2-instruct:free') });
+        if (orKey) providers.push({ name: 'Cohere', gen: () => streamCohere(allMsgs, orKey) });
+        if (orKey) providers.push({ name: 'Gemma', gen: () => streamOpenRouter(allMsgs, orKey, 'google/gemma-3-27b-it:free') });
         providers.push({ name: 'Pollinations', gen: () => streamPollinations(allMsgs) });
 
-        let activeProvider = '';
         const success = await raceProviders(
           providers,
           (chunk) => send(sse(chunk)),
-          (name) => { activeProvider = name; }
+          (_name) => {}
         );
 
         if (!success) {
