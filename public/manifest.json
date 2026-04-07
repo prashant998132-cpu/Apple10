@@ -1,81 +1,34 @@
 {
-  "name": "JARVIS AI",
+  "name": "JARVIS AI — Your Personal Assistant",
   "short_name": "JARVIS",
-  "description": "Your Personal AI — Groq + Gemini + Full Phone Access",
+  "description": "AI-powered personal assistant — Groq + Gemini + Claude + Grok. Voice, tools, study, code & more.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "orientation": "portrait",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "portrait-primary",
   "theme_color": "#6366f1",
   "background_color": "#0a0b0f",
   "lang": "hi-IN",
   "dir": "ltr",
+  "id": "jarvis-ai-v45",
   "categories": [
     "productivity",
     "utilities",
-    "lifestyle"
+    "lifestyle",
+    "education"
   ],
   "icons": [
-    {
-      "src": "/icons/icon-72.png",
-      "sizes": "72x72",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icons/icon-96.png",
-      "sizes": "96x96",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icons/icon-128.png",
-      "sizes": "128x128",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icons/icon-144.png",
-      "sizes": "144x144",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icons/icon-152.png",
-      "sizes": "152x152",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icons/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icons/icon-384.png",
-      "sizes": "384x384",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icons/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icons/icon-maskable-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "maskable"
-    },
-    {
-      "src": "/icons/icon-maskable-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
-    }
+    { "src": "/icons/icon-72.png",   "sizes": "72x72",   "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-96.png",   "sizes": "96x96",   "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-128.png",  "sizes": "128x128", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-144.png",  "sizes": "144x144", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-152.png",  "sizes": "152x152", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-192.png",  "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-384.png",  "sizes": "384x384", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png",  "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ],
   "shortcuts": [
     {
@@ -83,52 +36,42 @@
       "short_name": "Chat",
       "description": "Naya conversation shuru karo",
       "url": "/?new=1",
-      "icons": [
-        {
-          "src": "/icons/icon-96.png",
-          "sizes": "96x96",
-          "type": "image/png"
-        }
-      ]
+      "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96", "type": "image/png" }]
     },
     {
       "name": "Mausam",
       "short_name": "Weather",
-      "description": "Aaj ka mausam",
+      "description": "Aaj ka mausam dekho",
       "url": "/?q=weather",
-      "icons": [
-        {
-          "src": "/icons/icon-96.png",
-          "sizes": "96x96",
-          "type": "image/png"
-        }
-      ]
+      "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96", "type": "image/png" }]
     },
     {
       "name": "Cricket Score",
       "short_name": "Cricket",
       "description": "Live cricket scores",
-      "url": "/?q=cricket",
-      "icons": [
-        {
-          "src": "/icons/icon-96.png",
-          "sizes": "96x96",
-          "type": "image/png"
-        }
-      ]
+      "url": "/?q=cricket+score",
+      "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96", "type": "image/png" }]
     },
     {
       "name": "Dashboard",
       "short_name": "Dash",
       "description": "Gold, Crypto, News, Cricket",
       "url": "/dashboard",
-      "icons": [
-        {
-          "src": "/icons/icon-96.png",
-          "sizes": "96x96",
-          "type": "image/png"
-        }
-      ]
+      "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96", "type": "image/png" }]
+    },
+    {
+      "name": "Study Mode",
+      "short_name": "Study",
+      "description": "NEET/JEE study session shuru karo",
+      "url": "/study",
+      "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96", "type": "image/png" }]
+    },
+    {
+      "name": "Code Runner",
+      "short_name": "Code",
+      "description": "Code likhne aur run karne ke liye",
+      "url": "/?mode=code",
+      "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96", "type": "image/png" }]
     }
   ],
   "screenshots": [
@@ -136,27 +79,21 @@
       "src": "/screenshots/screen1.png",
       "sizes": "1080x1920",
       "type": "image/png",
-      "label": "JARVIS Chat Interface"
+      "label": "JARVIS Chat Interface",
+      "form_factor": "narrow"
     }
   ],
   "prefer_related_applications": false,
   "related_applications": [],
   "protocol_handlers": [
-    {
-      "protocol": "web+jarvis",
-      "url": "/?intent=%s"
-    }
+    { "protocol": "web+jarvis", "url": "/?intent=%s" }
   ],
   "share_target": {
     "action": "/share-target",
     "method": "GET",
-    "params": {
-      "title": "title",
-      "text": "text",
-      "url": "url"
-    }
+    "params": { "title": "title", "text": "text", "url": "url" }
   },
-  "edge_side_panel": {
-    "preferred_width": 400
-  }
+  "edge_side_panel": { "preferred_width": 400 },
+  "handle_links": "preferred",
+  "launch_handler": { "client_mode": "focus-existing" }
 }
