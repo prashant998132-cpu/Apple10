@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import { triggerAchievement } from '@/components/AchievementToast';
 import { getDB, Goal } from '@/lib/db';
 import { addXP } from '@/lib/memory';
 
@@ -30,7 +31,7 @@ export default function TargetPage() {
     const db = getDB(); if (!db) return;
     const status = progress >= 100 ? 'completed' : progress > 0 ? 'in-progress' : 'pending';
     await db.goals.update(id, { progress, status });
-    if (progress >= 100) await addXP(20);
+    if (progress >= 100) { await addXP(20); triggerAchievement('Goal Complete! 🎯', 20); }
     await load();
   };
 
