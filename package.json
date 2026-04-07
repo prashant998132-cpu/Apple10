@@ -1,33 +1,36 @@
 {
   "name": "jarvis-ai",
-  "version": "44.0.0",
+  "version": "45.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "next": "15.3.8",
-    "react": "18.2.0",
-    "react-dom": "18.2.0",
-    "dexie": "^4.0.8",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "sharp": "^0.33.5",
+    "dexie": "^4.0.10",
     "dexie-react-hooks": "^1.1.7",
-    "framer-motion": "^11.0.0",
-    "lucide-react": "^0.460.0",
-    "react-markdown": "^9.0.0",
-    "react-syntax-highlighter": "^15.5.0",
-    "remark-gfm": "^4.0.0",
-    "fuse.js": "^7.0.0"
+    "framer-motion": "^11.18.0",
+    "lucide-react": "^0.511.0",
+    "react-markdown": "^9.0.3",
+    "react-syntax-highlighter": "^15.6.1",
+    "remark-gfm": "^4.0.1",
+    "fuse.js": "^7.1.0"
   },
   "devDependencies": {
-    "@types/node": "^20",
+    "@types/node": "^22",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "@types/react-syntax-highlighter": "^15",
-    "typescript": "^5",
-    "tailwindcss": "^3.4.0",
-    "autoprefixer": "^10.4.0",
-    "postcss": "^8.4.0"
+    "typescript": "^5.8.3",
+    "tailwindcss": "^3.4.17",
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.3"
   }
 }
