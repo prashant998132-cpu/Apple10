@@ -1,17 +1,20 @@
 {
   "crons": [{"path": "/api/cron", "schedule": "0 3 * * *"}],
   "functions": {
-    "app/api/stream/route.ts":      { "maxDuration": 60 },
-    "app/api/deep/route.ts":        { "maxDuration": 60 },
-    "app/api/vision/route.ts":      { "maxDuration": 30 },
-    "app/api/stt/route.ts":         { "maxDuration": 30 },
-    "app/api/cron/route.ts":        { "maxDuration": 60 },
-    "app/api/code/route.ts":        { "maxDuration": 30 },
-    "app/api/grammar/route.ts":     { "maxDuration": 30 },
-    "app/api/translate/route.ts":   { "maxDuration": 20 },
-    "app/api/summarize/route.ts":   { "maxDuration": 30 },
+    "app/api/stream/route.ts":        { "maxDuration": 60 },
+    "app/api/deep/route.ts":          { "maxDuration": 60 },
+    "app/api/vision/route.ts":        { "maxDuration": 30 },
+    "app/api/stt/route.ts":           { "maxDuration": 30 },
+    "app/api/cron/route.ts":          { "maxDuration": 60 },
+    "app/api/code/route.ts":          { "maxDuration": 30 },
+    "app/api/grammar/route.ts":       { "maxDuration": 30 },
+    "app/api/translate/route.ts":     { "maxDuration": 20 },
+    "app/api/summarize/route.ts":     { "maxDuration": 30 },
     "app/api/summarize-url/route.ts": { "maxDuration": 30 },
-    "app/api/image/route.ts":       { "maxDuration": 30 },
-    "app/api/search/route.ts":      { "maxDuration": 20 }
+    "app/api/image/route.ts":         { "maxDuration": 30 },
+    "app/api/search/route.ts":        { "maxDuration": 20 },
+    "app/api/airquality/route.ts":    { "maxDuration": 15 },
+    "app/api/crypto/route.ts":        { "maxDuration": 15 },
+    "app/api/fuel/route.ts":          { "maxDuration": 10 }
   }
 }
