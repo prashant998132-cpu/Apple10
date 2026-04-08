@@ -13,6 +13,7 @@ const TABS = [
   { id: 'memory', label: 'Memory', emoji: '🧠' },
   { id: 'alerts', label: 'Alerts', emoji: '⏰' },
   { id: 'ai', label: 'AI', emoji: '⚡' },
+  { id: 'theme', label: 'Theme', emoji: '🎨' },
   { id: 'about', label: 'About', emoji: 'ℹ️' },
 ];
 
@@ -388,12 +389,41 @@ export default function SettingsPage() {
           </>
         )}
 
+        {/* ── THEME ── */}
+        {tab === 'theme' && (
+          <>
+            <div style={S.card}>
+              <div style={S.sectionTitle}>🎨 App Theme</div>
+              <p style={{ fontSize: 12, color: '#6b7280', marginBottom: 14 }}>Theme chuno — turant apply hoti hai</p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 8 }}>
+                {[
+                  { id:'dark',    emoji:'🌑', name:'Dark',   accent:'#6366f1' },
+                  { id:'midnight',emoji:'🌌', name:'Night',  accent:'#a78bfa' },
+                  { id:'ocean',   emoji:'🌊', name:'Ocean',  accent:'#22d3ee' },
+                  { id:'forest',  emoji:'🌲', name:'Forest', accent:'#22c55e' },
+                  { id:'sunset',  emoji:'🌅', name:'Sunset', accent:'#fb923c' },
+                ].map(t => (
+                  <button key={t.id} onClick={() => {
+                    if(typeof window!=='undefined'){
+                      import('@/lib/themeEngine').then(m=>m.applyTheme(t.id));
+                    }
+                  }}
+                    style={{ background:`${t.accent}15`, border:`2px solid ${t.accent}40`, borderRadius:14, padding:'12px 4px', cursor:'pointer', display:'flex', flexDirection:'column', alignItems:'center', gap:6 }}>
+                    <span style={{ fontSize:22 }}>{t.emoji}</span>
+                    <span style={{ fontSize:9, fontWeight:700, color:t.accent, textTransform:'uppercase' as const }}>{t.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+
         {/* ── ABOUT ── */}
         {tab === 'about' && (
           <>
             <div style={{ ...S.card, textAlign: 'center', padding: '24px 14px' }}>
               <div style={{ fontSize: 48, marginBottom: 8 }}>🤖</div>
-              <div style={{ fontSize: 20, fontWeight: 900, letterSpacing: 3, color: '#e2e8f0', marginBottom: 4 }}>JARVIS v32</div>
+              <div style={{ fontSize: 20, fontWeight: 900, letterSpacing: 3, color: '#e2e8f0', marginBottom: 4 }}>JARVIS v46</div>
               <div style={{ fontSize: 12, color: '#475569' }}>"Jons Bhai" — Your proactive AI companion</div>
             </div>
 
