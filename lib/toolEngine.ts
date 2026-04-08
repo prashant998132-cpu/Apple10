@@ -29,6 +29,10 @@ const INTENT_MAP: Record<string, ToolCategory[]> = {
 
   // Finance
   bitcoin: ['finance'], crypto: ['finance'], stock: ['finance'],
+  // Fuel
+  petrol: ['india'], diesel: ['india'], fuel: ['india'], cng: ['india'],
+  // AQI
+  aqi: ['health'], pollution: ['health'], pradushan: ['health'], air: ['health'],
   price: ['finance'], rupee: ['finance'], dollar: ['finance'],
   emi: ['finance'], sip: ['finance'], gst: ['finance'],
   invest: ['finance'], share: ['finance', 'social'], market: ['finance'],
@@ -459,6 +463,7 @@ const CATEGORY_TOOLS: Record<ToolCategory, Array<{ name: string; keywords: strin
     { name: 'india_news', keywords: ['news', 'khabar', 'headline', 'today', 'latest'], fn: toolNews, noKey: true, priority: 1 },
   ],
   india: [
+    { name: 'fuel_price', keywords: ['petrol','diesel','fuel','cng','price'], fn: toolFuelPrice, noKey: true, priority: 1 },
     { name: 'holidays', keywords: ['holiday', 'festival', 'छुट्टी', 'tyohar'], fn: () => toolHolidays(), noKey: true, priority: 1 },
     { name: 'msp', keywords: ['msp', 'gehu', 'wheat', 'fasal', 'crop', 'kisan'], fn: toolMSP, noKey: true, priority: 2 },
     { name: 'pincode', keywords: ['pin', 'pincode', 'postal', 'area'], fn: toolPincode, noKey: true, priority: 3 },
@@ -480,6 +485,7 @@ const CATEGORY_TOOLS: Record<ToolCategory, Array<{ name: string; keywords: strin
     { name: 'nasa', keywords: ['nasa', 'space', 'apod'], fn: () => toolNASA(), noKey: false, priority: 6 },
   ],
   health: [
+    { name: 'aqi', keywords: ['aqi','air','pollution','pradushan','quality'], fn: toolAQI, noKey: true, priority: 1 },
     { name: 'bmi_calc', keywords: ['bmi', 'weight', 'height', 'fat'], fn: q => {
       const nums = q.match(/\d+\.?\d*/g)?.map(Number);
       if (nums && nums.length >= 2) {
@@ -613,11 +619,44 @@ export async function getMorningBriefing(): Promise<string> {
 }
 
 // ── Check if query needs tools ─────────────────────────────────
+
+// FUEL PRICES (Indian Cities)
+async function toolFuelPrice(query: string): Promise<string> {
+  const cityMatch = query.match(/delhi|mumbai|bangalore|chennai|kolkata|hyderabad|pune|jaipur|lucknow|bhopal|maihar|satna|indore/i);
+  const city = cityMatch ? cityMatch[0].toLowerCase() : 'delhi';
+  try {
+    const r = await fetch(`/api/fuel?city=${city}`, { signal: AbortSignal.timeout(5000) });
+    const d = await r.json();
+    if (d.petrol) {
+      return `⛽ **${d.city} Fuel Prices (Today)**\n\n🔴 Petrol: ₹${d.petrol}/L\n🔵 Diesel: ₹${d.diesel}/L${d.cng ? `\n🟢 CNG: ₹${d.cng}/kg` : ''}\n\n*${d.note}*`;
+    }
+  } catch {}
+  return '⛽ Fuel price abhi available nahi hai';
+}
+
+// AIR QUALITY INDEX
+async function toolAQI(query: string): Promise<string> {
+  try {
+    let lat = 24.53, lon = 81.3, city = 'Maihar';
+    if (typeof window !== 'undefined') {
+      const loc = JSON.parse(localStorage.getItem('jarvis_location') || '{}');
+      lat = loc.lat || 24.53; lon = loc.lon || 81.3; city = loc.city || 'Maihar';
+    }
+    const r = await fetch(`/api/airquality?lat=${lat}&lon=${lon}&city=${encodeURIComponent(city)}`, { signal: AbortSignal.timeout(6000) });
+    const d = await r.json();
+    if (d.aqi) {
+      return `🌬️ **Air Quality — ${d.city}**\n\n${d.emoji} AQI: **${d.aqi}** (${d.level})\n💨 PM2.5: ${d.pollutants?.pm25} μg/m³\n🌫️ PM10: ${d.pollutants?.pm10} μg/m³\n\n💡 ${d.advice}`;
+    }
+  } catch {}
+  return '🌬️ AQI data abhi available nahi hai';
+}
+
 export function queryNeedsTools(query: string): boolean {
   const q = query.toLowerCase();
   // Questions that benefit from real-time data
   const livePatterns = [
-    /weather|mausam|temperature/i, /crypto|bitcoin|price/i,
+    /weather|mausam|temperature/i, /crypto|bitcoin|coin|eth|btc|sol/i,
+    /fuel|petrol|diesel|cng|price/i, /aqi|air quality|pollution|pradushan/i,
     /news|khabar/i, /holiday|festival/i, /joke|funny/i,
     /quote|motivation/i, /calculate|calc/i, /qr|qrcode/i,
     /wiki|explain|what is|who is|kya hai/i, /msp|gehu|wheat/i,
