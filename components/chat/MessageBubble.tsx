@@ -11,6 +11,44 @@ interface Props {
   onRegenerate?: () => void;
 }
 
+
+// ── LaTeX/Math renderer ─────────────────────────────────────
+function renderMath(text: string): string {
+  let out = text;
+  // Block math: $$...$$
+  out = out.replace(/\$\$([\s\S]+?)\$\$/g, (_:string, m:string) => {
+    const clean = m.trim()
+      .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g,'<span style="display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;margin:0 3px"><span style="border-bottom:1.5px solid #a5b4fc;padding:0 4px;font-size:0.88em">$1</span><span style="padding:0 4px;font-size:0.88em">$2</span></span>')
+      .replace(/\\approx/g,'≈').replace(/\\pi/g,'π').replace(/\\cdot/g,'·')
+      .replace(/\\times/g,'×').replace(/\\sqrt\{([^}]+)\}/g,'√($1)')
+      .replace(/\^2/g,'²').replace(/\^3/g,'³').replace(/\^\{([^}]+)\}/g,'<sup>$1</sup>')
+      .replace(/_\{([^}]+)\}/g,'<sub>$1</sub>').replace(/\\infty/g,'∞')
+      .replace(/\\sum/g,'Σ').replace(/\\int/g,'∫').replace(/\\alpha/g,'α')
+      .replace(/\\beta/g,'β').replace(/\\gamma/g,'γ').replace(/\\theta/g,'θ')
+      .replace(/\\lambda/g,'λ').replace(/\\sigma/g,'σ').replace(/\\mu/g,'μ')
+      .replace(/\\pm/g,'±').replace(/\\leq/g,'≤').replace(/\\geq/g,'≥').replace(/\\neq/g,'≠');
+    return '<div class="math-block">' + clean + '</div>';
+  });
+  // Inline math: $...$ (not $$)
+  out = out.replace(/(?<!\$)\$(?!\$)([^\$\n]{1,100}?)(?<!\$)\$(?!\$)/g, (_:string, m:string) => {
+    const clean = m.trim()
+      .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g,'($1)/($2)')
+      .replace(/\\approx/g,'≈').replace(/\\pi/g,'π').replace(/\\cdot/g,'·')
+      .replace(/\\times/g,'×').replace(/\^2/g,'²').replace(/\^3/g,'³')
+      .replace(/\^\{([^}]+)\}/g,'<sup>$1</sup>').replace(/_\{([^}]+)\}/g,'<sub>$1</sub>')
+      .replace(/\\alpha/g,'α').replace(/\\beta/g,'β').replace(/\\theta/g,'θ')
+      .replace(/\\sigma/g,'σ').replace(/\\mu/g,'μ').replace(/\\pm/g,'±')
+      .replace(/\\leq/g,'≤').replace(/\\geq/g,'≥').replace(/\\infty/g,'∞').replace(/\\pi/g,'π');
+    return '<span class="math-inline">' + clean + '</span>';
+  });
+  return out;
+}
+
+function hasMath(text: string): boolean {
+  return /\$\$[\s\S]+?\$\$|\$[^\$\n]{1,100}?\$/.test(text);
+}
+
+
 const MODE_COLORS: Record<string,string> = {think:'#a78bfa',deep:'#34d399',auto:'#60a5fa',flash:'#facc15'};
 const MODE_ICONS: Record<string,string>  = {think:'🧠',deep:'🔬',auto:'🤖',flash:'⚡'};
 const REACTIONS = ['❤️','🔥','😂','👏','😮','💯'];
@@ -109,6 +147,11 @@ export default function MessageBubble({message:msg,onLike,onSpeak,onCopy,onPin,o
 
           {msg.content&&(
             <div style={{fontSize:13.5,lineHeight:1.55,color:'#e2e8f0'}} className="jarvis-msg">
+              {hasMath(msg.content) ? (
+                <div dangerouslySetInnerHTML={{__html: renderMath(msg.content.replace(/
+/g,'<br/>'))}}
+                  style={{fontSize:13.5,lineHeight:1.6,color:'#e2e8f0'}} />
+              ) : (
               <ReactMarkdown remarkPlugins={[remarkGfm]} components={{
                 p:({children})=><p style={{margin:'0 0 4px',fontSize:13.5,lineHeight:1.55,color:'#e2e8f0'}}>{children}</p>,
                 code({node,inline,className,children,...props}:any){
@@ -126,6 +169,7 @@ export default function MessageBubble({message:msg,onLike,onSpeak,onCopy,onPin,o
                 a:({href,children})=><a href={href} target="_blank" rel="noopener noreferrer" style={{color:'#60a5fa',textDecoration:'underline'}}>{children}</a>,
                 hr:()=><hr style={{border:'none',borderTop:'1px solid rgba(255,255,255,0.07)',margin:'6px 0'}}/>,
               }}>{msg.content}</ReactMarkdown>
+              )}
             </div>
           )}
 
