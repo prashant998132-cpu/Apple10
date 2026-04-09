@@ -106,20 +106,26 @@ export default function InputBar({
     setTimeout(() => (document.querySelector('textarea') as HTMLTextAreaElement)?.focus(), 100);
   }, [onChange, onAppCommand]);
 
-  const startVoice = () => {
+  const startVoice = (lang = 'hi-IN') => {
     setShowPopup(false);
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (SR) {
       const rec = new SR();
-      rec.lang = 'hi-IN'; rec.continuous = false; rec.interimResults = true; rec.maxAlternatives = 2;
+      rec.lang = lang; rec.continuous = false; rec.interimResults = true; rec.maxAlternatives = 3;
       let finalTranscript = '';
+      let silenceTimer: ReturnType<typeof setTimeout>;
       rec.onresult = (e: any) => {
         let interim = '';
+        clearTimeout(silenceTimer);
         for (let i = e.resultIndex; i < e.results.length; i++) {
           if (e.results[i].isFinal) finalTranscript += e.results[i][0].transcript;
           else interim += e.results[i][0].transcript;
         }
         onChange(finalTranscript || interim);
+        // Auto-send after 2.5s silence if we have text
+        if (finalTranscript.trim().length > 3) {
+          silenceTimer = setTimeout(() => { rec.stop(); }, 2500);
+        }
       };
       rec.onend = () => {
         setListening(false);
