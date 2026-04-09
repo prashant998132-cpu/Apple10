@@ -13,6 +13,8 @@ interface Props {
   onAppCommand?: (action: string, payload: any) => void;
   wakeWordEnabled?: boolean;
   voiceLoopActive?: boolean;
+  forcedProvider?: string|null;
+  onForceProvider?: (p:string|null) => void;
 }
 
 const MODES = [
@@ -20,6 +22,15 @@ const MODES = [
   { id: 'think', icon: '🧠', label: 'Think',  desc: 'Reasoning', color: '#a78bfa' },
   { id: 'deep',  icon: '🔬', label: 'Deep',   desc: 'Analysis',  color: '#34d399' },
   { id: 'auto',  icon: '🤖', label: 'Auto',   desc: 'Smart',     color: '#60a5fa' },
+];
+
+const PROVIDERS = [
+  { id:'groq',       label:'Groq',       icon:'⚡', color:'#f59e0b' },
+  { id:'gemini',     label:'Gemini',     icon:'🌟', color:'#60a5fa' },
+  { id:'claude',     label:'Claude',     icon:'🎯', color:'#a78bfa' },
+  { id:'mistral',    label:'Mistral',    icon:'🌀', color:'#34d399' },
+  { id:'openrouter', label:'OpenRouter', icon:'🔀', color:'#f97316' },
+  { id:'pollinations',label:'Pollinations',icon:'🌸',color:'#ec4899'},
 ];
 
 const ATTACH = [
@@ -32,10 +43,11 @@ const ATTACH = [
 export default function InputBar({
   value, onChange, onSend, loading, onStop, onCompress,
   currentMode = 'auto', onModeChange, onVisionResult, onAppCommand, wakeWordEnabled = false,
-}: Props) {
+, forcedProvider, onForceProvider}: Props) {
   const [listening, setListening] = useState(false);
   const [wakeActive, setWakeActive] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
+  const [showProviders, setShowProviders] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const popupRef    = useRef<HTMLDivElement>(null);
   const wakeRecRef  = useRef<any>(null);
@@ -194,6 +206,24 @@ export default function InputBar({
         <div style={S.wakeBar}>
           <span>🎙</span>
           <span>Hey JARVIS sun raha hoon...</span>
+        </div>
+      )}
+
+      {/* Provider Picker */}
+      {showProviders && (
+        <div ref={popupRef} style={{position:'absolute',bottom:'100%',left:0,marginBottom:8,zIndex:60,borderRadius:16,background:'#13161f',border:'1px solid rgba(255,255,255,0.1)',boxShadow:'0 16px 48px rgba(0,0,0,0.6)',padding:'10px',minWidth:200}}>
+          <div style={{fontSize:9,fontWeight:700,color:'#4b5563',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:8,padding:'0 4px'}}>Force Provider</div>
+          <button onClick={()=>{onForceProvider?.(null);setShowProviders(false);}}
+            style={{display:'flex',alignItems:'center',gap:8,width:'100%',padding:'8px 10px',borderRadius:10,marginBottom:4,background:!forcedProvider?'rgba(255,255,255,0.07)':'transparent',border:!forcedProvider?'1px solid rgba(255,255,255,0.12)':'1px solid transparent',color:!forcedProvider?'#e2e8f0':'#6b7280',fontSize:12,cursor:'pointer',fontWeight:!forcedProvider?700:400}}>
+            🤖 <span>Auto (Cascade)</span> {!forcedProvider&&<span style={{marginLeft:'auto',color:'#22c55e',fontSize:10}}>✓</span>}
+          </button>
+          {PROVIDERS.map(p=>(
+            <button key={p.id} onClick={()=>{onForceProvider?.(p.id);setShowProviders(false);}}
+              style={{display:'flex',alignItems:'center',gap:8,width:'100%',padding:'8px 10px',borderRadius:10,marginBottom:3,background:forcedProvider===p.id?`${p.color}18`:'transparent',border:forcedProvider===p.id?`1px solid ${p.color}40`:'1px solid transparent',color:forcedProvider===p.id?p.color:'#9ca3af',fontSize:12,cursor:'pointer',fontWeight:forcedProvider===p.id?700:400}}>
+              {p.icon} <span>{p.label}</span> {forcedProvider===p.id&&<span style={{marginLeft:'auto',color:p.color,fontSize:10}}>🔒</span>}
+            </button>
+          ))}
+          <div style={{fontSize:9,color:'#374151',textAlign:'center',marginTop:6}}>Lock = specific provider force karo</div>
         </div>
       )}
 
