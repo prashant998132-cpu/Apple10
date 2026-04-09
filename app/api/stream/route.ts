@@ -244,7 +244,7 @@ async function raceProviders(
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => ({}));
-    const { messages = [], system = '', mode = 'auto' } = body;
+    const { messages = [], system = '', mode = 'auto', forcedProvider = null } = body;
 
     if (!messages.length) {
       return new Response(
@@ -279,7 +279,18 @@ export async function POST(req: NextRequest) {
 
         const providers: Array<{ name: string; gen: () => AsyncGenerator<string> }> = [];
 
-        if (mode === 'think') {
+        // ── Force Provider: user locked a specific provider ──────────
+        if (forcedProvider) {
+          const fp = forcedProvider as string;
+          if (fp === 'groq' && groqKey)         providers.push({ name:'Groq', gen:()=>streamGroq(allMsgs,'llama-3.3-70b-versatile',groqKey,2000) });
+          if (fp === 'gemini' && geminiKey)     providers.push({ name:'Gemini', gen:()=>streamGemini(messages,system,geminiKey,'gemini-2.5-flash',2000) });
+          if (fp === 'claude' && claudeKey)     providers.push({ name:'Claude', gen:()=>streamClaude(messages,system,claudeKey,3000) });
+          if (fp === 'mistral' && mistralKey)   providers.push({ name:'Mistral', gen:()=>streamMistral(allMsgs,mistralKey) });
+          if (fp === 'openrouter' && orKey)     providers.push({ name:'OpenRouter', gen:()=>streamOpenRouter(allMsgs,orKey,'google/gemma-3-27b-it:free') });
+          if (fp === 'pollinations')            providers.push({ name:'Pollinations', gen:()=>streamPollinations(allMsgs) });
+          // Fallback if key missing
+          if (providers.length === 0) providers.push({ name:'Pollinations', gen:()=>streamPollinations(allMsgs) });
+        } else if (mode === 'think') {
           // Think mode: Reasoning-first providers
           if (claudeKey)   providers.push({ name: 'Claude Sonnet', gen: () => streamClaude(messages, system, claudeKey, 5000) });
           if (groqKey)     providers.push({ name: 'Groq-R1', gen: () => streamGroq(allMsgs, 'deepseek-r1-distill-llama-70b', groqKey, 3000) });
@@ -303,12 +314,12 @@ export async function POST(req: NextRequest) {
           if (orKey)       providers.push({ name: 'Grok', gen: () => streamGrok(allMsgs, orKey) });
         }
 
-        // Always add fallbacks
-        if (togetherKey && mode === 'auto') providers.push({ name: 'Together', gen: () => streamTogether(allMsgs, togetherKey) });
-        if (orKey) providers.push({ name: 'Kimi K2', gen: () => streamOpenRouter(allMsgs, orKey, 'moonshotai/kimi-k2-instruct:free') });
-        if (orKey) providers.push({ name: 'Cohere', gen: () => streamCohere(allMsgs, orKey) });
-        if (orKey) providers.push({ name: 'Gemma', gen: () => streamOpenRouter(allMsgs, orKey, 'google/gemma-3-27b-it:free') });
-        providers.push({ name: 'Pollinations', gen: () => streamPollinations(allMsgs) });
+        // Always add fallbacks (skip if forced provider)
+        if (!forcedProvider && togetherKey && mode === 'auto') providers.push({ name: 'Together', gen: () => streamTogether(allMsgs, togetherKey) });
+        if (!forcedProvider && orKey) providers.push({ name: 'Kimi K2', gen: () => streamOpenRouter(allMsgs, orKey, 'moonshotai/kimi-k2-instruct:free') });
+        if (!forcedProvider && orKey) providers.push({ name: 'Cohere', gen: () => streamCohere(allMsgs, orKey) });
+        if (!forcedProvider && orKey) providers.push({ name: 'Gemma', gen: () => streamOpenRouter(allMsgs, orKey, 'google/gemma-3-27b-it:free') });
+        if (!forcedProvider) providers.push({ name: 'Pollinations', gen: () => streamPollinations(allMsgs) });
 
         const success = await raceProviders(
           providers,
