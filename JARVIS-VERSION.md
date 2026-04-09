@@ -1,65 +1,27 @@
-# JARVIS v46.0.0
+# JARVIS v47.0.0
 
 Released: April 2026
 
-## v46 — Massive Upgrade (15 Files)
+## v47 — Bug Fixes + Features from Reference App
 
-### 💰 New Pages
-- **NEW**: `/finance` — Full Finance Hub (Crypto live prices, Gold/Silver rates, SIP Calculator, EMI Calculator)
-- **NEW**: `/todo` — Smart To-Do with priority (high/medium/low), tags, due dates, progress bar
-- **NEW**: `/calculator` — 4-in-1 Calculator (Basic, Scientific, Unit Converter, % Tools)
+### 🐛 Critical Fixes
+- **FIX**: Chat screen black/blank — `position:fixed` + `100dvh` layout fix
+- **FIX**: Scroll nahi ho raha — `min-height:0` + `chat-scroll-area` CSS fix
+- **FIX**: `$H$` LaTeX raw text — Math renderer added (inline + block)
+- **FIX**: `#__next` height cascade fixed in globals.css
 
-### 🌍 New APIs
-- **NEW**: `/api/crypto` — CoinGecko + CoinPaprika fallback, 8 coins in INR+USD
-- **NEW**: `/api/airquality` — Open-Meteo AQI (free, no key) + WAQI fallback
-- **NEW**: `/api/fuel` — Indian city fuel/diesel/CNG prices (20 cities)
+### ✨ New Features (from apple-v20.vercel.app)
+- **NEW**: LaTeX Math Rendering — `$inline$` → italic blue, `$$block$$` → centered card
+- **NEW**: Force Provider Lock 🔒 — Input bar mein provider pin karo (Groq/Gemini/Claude/Mistral)
+- **NEW**: Dynamic FollowUp Chips — Time-based (subah/dopahar/shaam/raat) + context-aware
+- **NEW**: Finance/Health/Cooking/NEET categories in follow-up chips
+- **UPGRADE**: Stream API now supports `forcedProvider` parameter
 
-### 🎨 Theme System
-- **NEW**: `lib/themeEngine.ts` — 5 themes: Dark, Midnight, Ocean, Forest, Sunset
-- **NEW**: `components/ThemeSelector.tsx` — Theme picker UI with color swatches
-- **NEW**: Theme tab added in Settings page
-
-### 🏠 HomeScreen Upgrade
-- **NEW**: AQI card alongside Time + Weather (3-column row)
-- **NEW**: Quick Nav tiles — Finance, To-Do, Calculator, NEET, Dashboard, Image, Notes, Settings
-- **UPGRADE**: Better layout, smaller spacing, more info density
-
-### 🧭 BottomNav Upgrade
-- **UPGRADE**: Finance + To-Do added to main nav bar (replaced Image + Entertainment)
-- **UPGRADE**: Battery level shown in More drawer
-- **UPGRADE**: Cleaner icons and labels
-
-### 🔧 Tool Engine Upgrades
-- **NEW**: `get_air_quality` tool — AQI for any location
-- **NEW**: `get_fuel_price` tool — petrol/diesel prices for Indian cities
-- **NEW**: `get_crypto_price` tool — live crypto rates in INR
-- **UPGRADE**: 3 new intent keywords: aqi, petrol, diesel, fuel, crypto
-
-### 📦 Package
-- version: 46.0.0
-- All previous v45 features retained
+### 🎨 UI Improvements
+- Math blocks: centered, indigo border, serif font, fraction rendering
+- Provider badge in InputBar: 🔒 locked (amber) / 🤖 auto (indigo)
+- Follow-up chips: 4 chips shown, touch-friendly, time-aware on first message
 
 ---
 
-# JARVIS v45.0.0
-
-Released: April 2026
-
-## v45 — Massive Upgrade (15 Files)
-
-### 🤖 AI Model Upgrades
-- **UPGRADE**: Claude upgraded `haiku-4-5` → `claude-sonnet-4-6`
-- **NEW**: xAI Grok added (OpenRouter `x-ai/grok-3-mini-beta:free`)
-- **NEW**: Cohere Command R+ fallback
-- **UPGRADE**: Deep mode → Gemini 2.5 Pro
-- **UPGRADE**: Token limits increased (1500→2000 flash, 3000→5000 think, 4000→6000 deep)
-
-### 🛠️ New Tools (8)
-- `get_gold_price`, `get_fuel_price`, `get_random_fact`, `get_ip_info`
-- `get_dadjoke`, `get_trivia`, `get_country`, `get_lucky`
-
-### 🧠 Intelligence
-- 6 new personality modes: debate, creative, fitness, chef, career, therapist
-- Better emotion detection: proud, confused, romantic
-- `suggestPersonality()` — auto mode suggestion
-- Memory slice: 12 → 15
+# Previous: JARVIS v46.0.0 (Finance + Todo + Calculator + AQI + Themes)
