@@ -22,3 +22,19 @@ button:focus-visible,input:focus-visible{outline:2px solid rgba(99,102,241,0.6);
 input,textarea,select{font-size:16px}
 .safe-bottom{padding-bottom:env(safe-area-inset-bottom)}
 .glass{background:rgba(13,17,23,0.8);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+
+/* ── JARVIS v47 FIXES ── */
+#__next { height: 100%; display: flex; flex-direction: column; }
+.chat-scroll-area { flex: 1 !important; min-height: 0 !important; overflow-y: auto !important; -webkit-overflow-scrolling: touch; }
+
+/* Math rendering */
+.math-inline { color: #60a5fa; font-style: italic; font-family: 'Georgia', serif; font-size: 1.05em; letter-spacing: 0.01em; }
+.math-block { display: block; text-align: center; margin: 10px auto; padding: 10px 16px; background: rgba(99,102,241,0.07); border: 1px solid rgba(99,102,241,0.2); border-radius: 10px; color: #a5b4fc; font-style: italic; font-family: 'Georgia', serif; font-size: 1.1em; line-height: 1.8; overflow-x: auto; white-space: nowrap; }
+.math-frac { display: inline-flex; flex-direction: column; align-items: center; vertical-align: middle; margin: 0 3px; }
+.math-frac-num { border-bottom: 1.5px solid currentColor; padding: 0 4px; font-size: 0.9em; }
+.math-frac-den { padding: 0 4px; font-size: 0.9em; }
+
+/* Provider badge */
+.provider-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 99px; font-size: 10px; font-weight: 700; cursor: pointer; transition: all 0.15s; }
+.provider-badge.locked { background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.3); color: #f59e0b; }
+.provider-badge.auto-mode { background: rgba(99,102,241,0.12); border: 1px solid rgba(99,102,241,0.2); color: #818cf8; }
