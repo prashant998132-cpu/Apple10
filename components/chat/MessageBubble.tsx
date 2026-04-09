@@ -12,36 +12,66 @@ interface Props {
 }
 
 
-// ── LaTeX/Math renderer ─────────────────────────────────────
+// ── LaTeX/Math renderer v2 (better) ────────────────────────
 function renderMath(text: string): string {
   let out = text;
+
   // Block math: $$...$$
-  out = out.replace(/\$\$([\s\S]+?)\$\$/g, (_:string, m:string) => {
-    const clean = m.trim()
-      .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g,'<span style="display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;margin:0 3px"><span style="border-bottom:1.5px solid #a5b4fc;padding:0 4px;font-size:0.88em">$1</span><span style="padding:0 4px;font-size:0.88em">$2</span></span>')
-      .replace(/\\approx/g,'≈').replace(/\\pi/g,'π').replace(/\\cdot/g,'·')
-      .replace(/\\times/g,'×').replace(/\\sqrt\{([^}]+)\}/g,'√($1)')
-      .replace(/\^2/g,'²').replace(/\^3/g,'³').replace(/\^\{([^}]+)\}/g,'<sup>$1</sup>')
-      .replace(/_\{([^}]+)\}/g,'<sub>$1</sub>').replace(/\\infty/g,'∞')
-      .replace(/\\sum/g,'Σ').replace(/\\int/g,'∫').replace(/\\alpha/g,'α')
-      .replace(/\\beta/g,'β').replace(/\\gamma/g,'γ').replace(/\\theta/g,'θ')
-      .replace(/\\lambda/g,'λ').replace(/\\sigma/g,'σ').replace(/\\mu/g,'μ')
-      .replace(/\\pm/g,'±').replace(/\\leq/g,'≤').replace(/\\geq/g,'≥').replace(/\\neq/g,'≠');
-    return '<div class="math-block">' + clean + '</div>';
+  out = out.replace(/\$\$([\s\S]+?)\$\$/g, (_: string, m: string) => {
+    const clean = processLatex(m.trim());
+    return `<div class="math-block">${clean}</div>`;
   });
+
   // Inline math: $...$ (not $$)
-  out = out.replace(/(?<!\$)\$(?!\$)([^\$\n]{1,100}?)(?<!\$)\$(?!\$)/g, (_:string, m:string) => {
-    const clean = m.trim()
-      .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g,'($1)/($2)')
-      .replace(/\\approx/g,'≈').replace(/\\pi/g,'π').replace(/\\cdot/g,'·')
-      .replace(/\\times/g,'×').replace(/\^2/g,'²').replace(/\^3/g,'³')
-      .replace(/\^\{([^}]+)\}/g,'<sup>$1</sup>').replace(/_\{([^}]+)\}/g,'<sub>$1</sub>')
-      .replace(/\\alpha/g,'α').replace(/\\beta/g,'β').replace(/\\theta/g,'θ')
-      .replace(/\\sigma/g,'σ').replace(/\\mu/g,'μ').replace(/\\pm/g,'±')
-      .replace(/\\leq/g,'≤').replace(/\\geq/g,'≥').replace(/\\infty/g,'∞').replace(/\\pi/g,'π');
-    return '<span class="math-inline">' + clean + '</span>';
+  out = out.replace(/(?<!\$)\$(?!\$)([^\$\n]{1,120}?)(?<!\$)\$(?!\$)/g, (_: string, m: string) => {
+    const clean = processLatex(m.trim());
+    return `<span class="math-inline">${clean}</span>`;
   });
+
   return out;
+}
+
+function processLatex(s: string): string {
+  return s
+    // Fractions — render as stacked
+    .replace(/\\frac\{([^{}]+)\}\{([^{}]+)\}/g,
+      '<span style="display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;margin:0 4px;gap:1px"><span style="border-bottom:1.5px solid #a5b4fc;padding:0 5px;font-size:0.88em;line-height:1.4">$1</span><span style="padding:0 5px;font-size:0.88em;line-height:1.4">$2</span></span>')
+    // Superscripts
+    .replace(/\^\{([^{}]+)\}/g,'<sup>$1</sup>')
+    .replace(/\^(\d+)/g,'<sup>$1</sup>')
+    .replace(/\^([a-zA-Z])/g,'<sup>$1</sup>')
+    // Subscripts
+    .replace(/_\{([^{}]+)\}/g,'<sub>$1</sub>')
+    .replace(/_(\d+)/g,'<sub>$1</sub>')
+    // Square roots
+    .replace(/\\sqrt\{([^{}]+)\}/g,'<span style="border-top:1.5px solid #a5b4fc;padding:0 3px">√<span>$1</span></span>')
+    .replace(/\\sqrt([a-zA-Z0-9])/g,'√$1')
+    // Greek letters
+    .replace(/\\alpha/g,'α').replace(/\\beta/g,'β').replace(/\\gamma/g,'γ')
+    .replace(/\\delta/g,'δ').replace(/\\epsilon/g,'ε').replace(/\\zeta/g,'ζ')
+    .replace(/\\eta/g,'η').replace(/\\theta/g,'θ').replace(/\\iota/g,'ι')
+    .replace(/\\kappa/g,'κ').replace(/\\lambda/g,'λ').replace(/\\mu/g,'μ')
+    .replace(/\\nu/g,'ν').replace(/\\xi/g,'ξ').replace(/\\pi/g,'π')
+    .replace(/\\rho/g,'ρ').replace(/\\sigma/g,'σ').replace(/\\tau/g,'τ')
+    .replace(/\\phi/g,'φ').replace(/\\chi/g,'χ').replace(/\\psi/g,'ψ')
+    .replace(/\\omega/g,'ω').replace(/\\Sigma/g,'Σ').replace(/\\Delta/g,'Δ')
+    .replace(/\\Pi/g,'Π').replace(/\\Omega/g,'Ω').replace(/\\Gamma/g,'Γ')
+    // Operators & symbols
+    .replace(/\\approx/g,'≈').replace(/\\cdot/g,'·').replace(/\\times/g,'×')
+    .replace(/\\div/g,'÷').replace(/\\pm/g,'±').replace(/\\mp/g,'∓')
+    .replace(/\\leq/g,'≤').replace(/\\geq/g,'≥').replace(/\\neq/g,'≠')
+    .replace(/\\infty/g,'∞').replace(/\\sum/g,'Σ').replace(/\\int/g,'∫')
+    .replace(/\\partial/g,'∂').replace(/\\nabla/g,'∇').replace(/\\forall/g,'∀')
+    .replace(/\\exists/g,'∃').replace(/\\in/g,'∈').replace(/\\notin/g,'∉')
+    .replace(/\\subset/g,'⊂').replace(/\\supset/g,'⊃').replace(/\\cup/g,'∪')
+    .replace(/\\cap/g,'∩').replace(/\\rightarrow/g,'→').replace(/\\leftarrow/g,'←')
+    .replace(/\\Rightarrow/g,'⇒').replace(/\\Leftrightarrow/g,'⟺')
+    .replace(/\\therefore/g,'∴').replace(/\\because/g,'∵')
+    // Powers shortcuts
+    .replace(/\^2\b/g,'²').replace(/\^3\b/g,'³')
+    // Clean remaining backslashes
+    .replace(/\\([a-zA-Z]+)/g,'$1')
+    .replace(/\{([^{}]*)\}/g,'$1');
 }
 
 function hasMath(text: string): boolean {
@@ -68,6 +98,19 @@ export default function MessageBubble({message:msg,onLike,onSpeak,onCopy,onPin,o
 
   const handleCopy = () => { navigator.clipboard.writeText(msg.content).catch(()=>{}); setCopied(true); setTimeout(()=>setCopied(false),1800); onCopy(); };
 
+
+  const saveToMemory = () => {
+    try {
+      import('@/lib/crossSessionMemory').then(m => {
+        m.saveManualMemory(msg.content.slice(0, 200));
+      });
+      const t = document.createElement('div');
+      t.textContent = '🧠 Memory mein save!';
+      t.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#6366f1;color:#fff;padding:8px 18px;border-radius:99px;font-size:12px;font-weight:700;z-index:9999;pointer-events:none;';
+      document.body.appendChild(t);
+      setTimeout(() => t.remove(), 2000);
+    } catch {}
+  };
 
   const saveToNotes = () => {
     try {
@@ -122,7 +165,9 @@ export default function MessageBubble({message:msg,onLike,onSpeak,onCopy,onPin,o
                   style={{fontSize:9,padding:'1px 6px',borderRadius:8,background:'rgba(255,255,255,0.07)',border:'1px solid rgba(255,255,255,0.1)',color:copied?'#4ade80':'#9ca3af',cursor:'pointer'}}>
                   {copied?'✅':'📋'}
                 </button>
-                <button onClick={e=>{e.stopPropagation();shareWhatsApp();}}
+                <button onClick={e=>{e.stopPropagation();saveToNotes();setShowActions(false);}}
+                style={{fontSize:11,padding:'2px 6px',borderRadius:6,background:'rgba(99,102,241,0.08)',border:'1px solid rgba(99,102,241,0.15)',cursor:'pointer',color:'#818cf8'}}>💾</button>
+              <button onClick={e=>{e.stopPropagation();shareWhatsApp();}}
                   style={{fontSize:9,padding:'1px 6px',borderRadius:8,background:'rgba(37,211,102,0.1)',border:'1px solid rgba(37,211,102,0.3)',color:'#25d366',cursor:'pointer'}}>
                   WhatsApp
                 </button>
@@ -210,6 +255,7 @@ export default function MessageBubble({message:msg,onLike,onSpeak,onCopy,onPin,o
               {showActions&&(
                 <>
                   <button onClick={e=>{e.stopPropagation();onSpeak();setShowActions(false);}} style={{fontSize:11,padding:'2px 6px',borderRadius:6,background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.08)',cursor:'pointer'}}>🔊</button>
+                  <button onClick={e=>{e.stopPropagation();saveToMemory();setShowActions(false);}} style={{fontSize:11,padding:'2px 6px',borderRadius:6,background:'rgba(99,102,241,0.08)',border:'1px solid rgba(99,102,241,0.2)',cursor:'pointer',color:'#818cf8'}}>🧠</button>
                   <button onClick={e=>{e.stopPropagation();onLike(true);setShowActions(false);}} style={{fontSize:11,padding:'2px 6px',borderRadius:6,background:msg.liked===true?'rgba(74,222,128,0.1)':'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.08)',cursor:'pointer'}}>{msg.liked===true?'💙':'👍'}</button>
                   <button onClick={e=>{e.stopPropagation();onPin();setShowActions(false);}} style={{fontSize:11,padding:'2px 6px',borderRadius:6,background:msg.pinned?'rgba(251,191,36,0.1)':'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.08)',cursor:'pointer'}}>{msg.pinned?'📌':'📍'}</button>
                 </>
