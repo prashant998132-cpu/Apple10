@@ -62,6 +62,7 @@ export default function ChatInterface() {
   const [batteryInfo, setBatteryInfo] = useState<string>('');
   const [networkQuality, setNetworkQuality] = useState<'fast'|'medium'|'slow'|'offline'>('fast');
   const [voiceLoopActive, setVoiceLoopActive] = useState(false);
+  const [forcedProvider, setForcedProvider] = useState<string|null>(null);
   // NEW: search + userName
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
@@ -306,7 +307,7 @@ export default function ChatInterface() {
   const pinnedList = messages.filter(m => m.pinned);
 
   return (
-    <div className="flex flex-col bg-[#0a0b0f]" style={{ height: '100%', overflow: 'hidden' }}>
+    <div className="flex flex-col bg-[#0a0b0f]" style={{ height: '100dvh', maxHeight: '100dvh', overflow: 'hidden', position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
       <ToastContainer />
       {showCompress && <CompressPopup onClose={() => setShowCompress(false)} />}
 
@@ -327,7 +328,7 @@ export default function ChatInterface() {
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto" style={{ paddingTop: showSearch ? 56 : 0 }}>
+      <div className="chat-scroll-area" style={{ paddingTop: showSearch ? 56 : 0, WebkitOverflowScrolling: "touch" }}>
         <TopBar
           onCompress={() => setShowCompress(true)}
           onSessionSelect={loadSession}
@@ -398,6 +399,8 @@ export default function ChatInterface() {
             onCompress={() => setShowCompress(true)}
             currentMode={thinkMode}
             onModeChange={m => setThinkMode(m as any)}
+            forcedProvider={forcedProvider}
+            onForceProvider={setForcedProvider}
             sessionId={sessionId}
             onSessionSelect={loadSession}
             toolsRunning={toolsRunning}
