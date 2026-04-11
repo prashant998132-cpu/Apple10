@@ -60,7 +60,7 @@ export default function Home() {
     <div style={{ height:'100%', display:'flex', flexDirection:'column', overflow:'hidden' }}>
       <ErrorBoundary>
         <SharedContentHandler />
-        <div style={{ flex:1, overflow:'hidden', position:'relative' }}>
+        <div style={{ flex:1, overflow:'hidden', position:'relative', minHeight:0 }}>
           <ChatInterface />
         </div>
       </ErrorBoundary>
