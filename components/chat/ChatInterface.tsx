@@ -13,6 +13,7 @@ import { getDB } from '@/lib/db';
 import MessageBubble from './MessageBubble';
 import InputBar from './InputBar';
 import ModeBar from './ModeBar';
+import FollowUpChips from './FollowUpChips';
 import ThinkBubble from './ThinkBubble';
 import CommandPalette from '@/components/CommandPalette';
 import ChatHistorySidebar from '@/components/ChatHistorySidebar';
@@ -391,6 +392,14 @@ export default function ChatInterface() {
 
       <div className="flex-shrink-0 px-4 pb-5 pt-1 bg-gradient-to-t from-[#0a0b0f] via-[#0a0b0f] to-transparent">
         <div className="max-w-2xl mx-auto">
+          {/* Follow-up chips */}
+          {!loading && messages.length > 0 && (
+            <FollowUpChips
+              lastMessage={messages[messages.length - 1] || messages[0]}
+              onSelect={(text) => sendMessage(text)}
+              isFirst={messages.length <= 1}
+            />
+          )}
           <InputBar
             onVisionResult={handleVisionResult}
             value={input} onChange={setInput}
