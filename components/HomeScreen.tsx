@@ -87,7 +87,7 @@ export default function HomeScreen({ name, onSend }: Props) {
   const xpPct=xp%100;
 
   return(
-    <div style={{padding:'0 14px 80px',maxWidth:480,margin:'0 auto'}}>
+    <div style={{padding:'0 14px 100px',maxWidth:480,margin:'0 auto'}}>
       {/* Greeting */}
       <div style={{textAlign:'center',padding:'18px 0 12px'}}>
         <div style={{fontSize:11,color:'#60a5fa',fontWeight:600,marginBottom:3}}>{greet.text} {greet.emoji}</div>
