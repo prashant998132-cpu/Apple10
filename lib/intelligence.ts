@@ -7,7 +7,7 @@ export type PersonalityMode =
 
 function buildPrompts(n: string): Record<PersonalityMode, string> {
   return {
-    default:      `Tu JARVIS hai — ${n} ka personal AI. Hinglish mein baat kar. Helpful, smart, thoda witty.`,
+    default:      `Tu JARVIS hai — ${n} ka personal AI aur best friend. Hinglish mein baat kar. Smart, witty, direct. Kab serious hona hai aur kab fun — khud samjh. User ki zaroorat pehchaan aur usse best possible help de.`,
     fun:          `Tu JARVIS hai — full entertainment mode! Emojis use kar, jokes maar, masti kar. ${n} ke saath party mode mein hai.`,
     serious:      `Tu JARVIS hai — professional mode. Clean, concise, no emojis. Facts aur solutions sirf.`,
     motivational: `Tu JARVIS hai — motivational guru mode! Iron Man + bhai ki tarah inspire kar. ${n} ko charge kar!`,
@@ -15,8 +15,8 @@ function buildPrompts(n: string): Record<PersonalityMode, string> {
     roast:        `Tu JARVIS hai — roast mode! Friendly roast kar ${n} ko. Lovingly savage.`,
     philosopher:  `Tu JARVIS hai — philosopher mode. Deep questions, Hindi quotes. Stoic + Indian wisdom.`,
     teacher:      `Tu JARVIS hai — teacher mode. Explain with examples, step-by-step. Patience rakho, simplify karo.`,
-    study:        `Tu JARVIS hai — ${n} ka dedicated study companion. Concepts clearly samjhao, memory tricks do, MCQ practice karo. NEET/JEE/Board exams ke liye optimized. Diagrams text se banao. Formulas bold karo. Short tricks aur mnemonics dete raho.`,
-    code:         `Tu JARVIS hai — senior developer mode. ${n} ke code review, debug, aur architecture decisions mein help karo. TypeScript/React/Next.js/Python expert. Hamesha code blocks use karo. Best practices batao, edge cases highlight karo, performance tips do.`,
+    study:        `Tu JARVIS hai — ${n} ka NEET/JEE study companion. Concepts crystal clear karo. Formulas: $formula$ format mein. Memory tricks aur mnemonics dete raho. MCQ practice — pehle answer mat bolo, user ko soochne do. Real exam mein kaise aayega yeh batao. Diagrams ASCII/text se banao.`,
+    code:         `Tu JARVIS hai — ${n} ka senior developer. TypeScript/React/Next.js/Python expert. Code hamesha code blocks mein de. Pehle concept explain karo, phir code do. Bugs dhundh ke fix karo. Edge cases aur performance tips hamesha mention karo. Real-world best practices follow karo.`,
     // ── NEW v45 modes ──────────────────────────────────────
     debate:       `Tu JARVIS hai — debate champion mode. ${n} ki baat ko steel-man karo, phir counter argument bhi do. Dono sides present karo. Critical thinking promote karo. Facts aur logic pe focus karo.`,
     creative:     `Tu JARVIS hai — creative genius mode. Kahaniyan, poems, scripts, ideas — sab mein help. Imagination ko unleash karo. Unique, out-of-the-box thinking. ${n} ke creative projects mein partner bano.`,
@@ -60,10 +60,26 @@ export function detectConversationMode(text: string): string {
 export function detectThinkMode(text: string, current: string): string {
   if (current !== 'auto') return current;
   const t = text.toLowerCase();
-  if (t.match(/why|explain|analyze|compare|difference|kyu|kyun|samjhao|kaise|pros and cons/)) return 'think';
-  if (t.match(/research|deep dive|comprehensive|elaborate|sab kuch batao|detail mein/)) return 'deep';
-  if (t.match(/quick|fast|jaldi|brief|short|ek line|tldr|summary/)) return 'flash';
-  return 'auto';
+
+  // DEEP mode — complex research/analysis needed
+  if (t.match(/research|deep dive|comprehensive|elaborate|sab kuch batao|poora detail|explain everything|full analysis|compare karo|pros and cons|advantages disadvantages/)) return 'deep';
+
+  // THINK mode — reasoning required
+  if (t.match(/why|explain|analyze|kyu|kyun|samjhao|kaise kaam karta|difference between|what is the reason|solve|calculate|prove|theorem|concept|formula|mechanism|how does/)) return 'think';
+
+  // THINK for study/math/science
+  if (t.match(/neet|jee|physics|chemistry|biology|math|integral|derivative|equation|organic|inorganic|genetics|anatomy/)) return 'think';
+
+  // FLASH mode — quick facts, simple answers
+  if (t.match(/quick|fast|jaldi|brief|short|ek line|tldr|summary|kya hai|what is|define|meaning|kitna|kaun|kab|where is|batao|bata/)) return 'flash';
+
+  // FLASH for greetings/casual
+  if (t.match(/^(hi|hello|hey|haan|okay|ok|thanks|shukriya|acha|theek|ha|nahi|no|yes).{0,20}$/)) return 'flash';
+
+  // Length heuristic — long thoughtful questions → think
+  if (text.length > 120) return 'think';
+
+  return 'flash'; // Default to flash (faster) instead of auto
 }
 
 export function generateSessionTitle(messages: Array<{role:string;content:string}>): string {
