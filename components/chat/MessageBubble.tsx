@@ -11,73 +11,47 @@ interface Props {
   onRegenerate?: () => void;
 }
 
-
-// ── LaTeX/Math renderer v2 (better) ────────────────────────
-function renderMath(text: string): string {
-  let out = text;
-
-  // Block math: $$...$$
-  out = out.replace(/\$\$([\s\S]+?)\$\$/g, (_: string, m: string) => {
-    const clean = processLatex(m.trim());
-    return '<div class="math-block">' + clean + '</div>';
+// ── Math renderer (no template literals, no dynamic imports) ──
+function mathToHtml(text: string): string {
+  // Replace $$block$$ first
+  let out = text.replace(/\$\$[\s\S]+?\$\$/g, function(match) {
+    const inner = match.slice(2, -2).trim();
+    const clean = latexSymbols(inner);
+    return '<span style="display:block;text-align:center;margin:10px 0;padding:10px 16px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.2);border-radius:10px;color:#a5b4fc;font-style:italic;font-family:Georgia,serif;font-size:1.1em;overflow-x:auto">' + clean + '</span>';
   });
-
-  // Inline math: $...$ (not $$)
-  out = out.replace(/(?<!\$)\$(?!\$)([^\$\n]{1,120}?)(?<!\$)\$(?!\$)/g, (_: string, m: string) => {
-    const clean = processLatex(m.trim());
-    return '<span class="math-inline">' + clean + '</span>';
+  // Replace $inline$
+  out = out.replace(/\$[^\$\n]{1,120}?\$/g, function(match) {
+    const inner = match.slice(1, -1).trim();
+    const clean = latexSymbols(inner);
+    return '<span style="color:#60a5fa;font-style:italic;font-family:Georgia,serif">' + clean + '</span>';
   });
-
   return out;
 }
 
-function processLatex(s: string): string {
+function latexSymbols(s: string): string {
   return s
-    // Fractions — render as stacked
-    .replace(/\\frac\{([^{}]+)\}\{([^{}]+)\}/g,
-      '<span style="display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;margin:0 4px;gap:1px"><span style="border-bottom:1.5px solid #a5b4fc;padding:0 5px;font-size:0.88em;line-height:1.4">$1</span><span style="padding:0 5px;font-size:0.88em;line-height:1.4">$2</span></span>')
-    // Superscripts
-    .replace(/\^\{([^{}]+)\}/g,'<sup>$1</sup>')
-    .replace(/\^(\d+)/g,'<sup>$1</sup>')
-    .replace(/\^([a-zA-Z])/g,'<sup>$1</sup>')
-    // Subscripts
-    .replace(/_\{([^{}]+)\}/g,'<sub>$1</sub>')
-    .replace(/_(\d+)/g,'<sub>$1</sub>')
-    // Square roots
-    .replace(/\\sqrt\{([^{}]+)\}/g,'<span style="border-top:1.5px solid #a5b4fc;padding:0 3px">√<span>$1</span></span>')
-    .replace(/\\sqrt([a-zA-Z0-9])/g,'√$1')
-    // Greek letters
+    .replace(/\\frac\{([^{}]+)\}\{([^{}]+)\}/g, function(_m: string, n: string, d: string) {
+      return '<span style="display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;margin:0 4px"><span style="border-bottom:1.5px solid #a5b4fc;padding:0 4px;font-size:0.9em">' + n + '</span><span style="padding:0 4px;font-size:0.9em">' + d + '</span></span>';
+    })
+    .replace(/\^\{([^{}]+)\}/g, '<sup>$1</sup>')
+    .replace(/\^(\d)/g, '<sup>$1</sup>')
+    .replace(/_\{([^{}]+)\}/g, '<sub>$1</sub>')
+    .replace(/\\sqrt\{([^{}]+)\}/g, '√($1)')
     .replace(/\\alpha/g,'α').replace(/\\beta/g,'β').replace(/\\gamma/g,'γ')
-    .replace(/\\delta/g,'δ').replace(/\\epsilon/g,'ε').replace(/\\zeta/g,'ζ')
-    .replace(/\\eta/g,'η').replace(/\\theta/g,'θ').replace(/\\iota/g,'ι')
-    .replace(/\\kappa/g,'κ').replace(/\\lambda/g,'λ').replace(/\\mu/g,'μ')
-    .replace(/\\nu/g,'ν').replace(/\\xi/g,'ξ').replace(/\\pi/g,'π')
-    .replace(/\\rho/g,'ρ').replace(/\\sigma/g,'σ').replace(/\\tau/g,'τ')
-    .replace(/\\phi/g,'φ').replace(/\\chi/g,'χ').replace(/\\psi/g,'ψ')
+    .replace(/\\delta/g,'δ').replace(/\\theta/g,'θ').replace(/\\lambda/g,'λ')
+    .replace(/\\mu/g,'μ').replace(/\\sigma/g,'σ').replace(/\\pi/g,'π')
     .replace(/\\omega/g,'ω').replace(/\\Sigma/g,'Σ').replace(/\\Delta/g,'Δ')
-    .replace(/\\Pi/g,'Π').replace(/\\Omega/g,'Ω').replace(/\\Gamma/g,'Γ')
-    // Operators & symbols
     .replace(/\\approx/g,'≈').replace(/\\cdot/g,'·').replace(/\\times/g,'×')
-    .replace(/\\div/g,'÷').replace(/\\pm/g,'±').replace(/\\mp/g,'∓')
-    .replace(/\\leq/g,'≤').replace(/\\geq/g,'≥').replace(/\\neq/g,'≠')
-    .replace(/\\infty/g,'∞').replace(/\\sum/g,'Σ').replace(/\\int/g,'∫')
-    .replace(/\\partial/g,'∂').replace(/\\nabla/g,'∇').replace(/\\forall/g,'∀')
-    .replace(/\\exists/g,'∃').replace(/\\in/g,'∈').replace(/\\notin/g,'∉')
-    .replace(/\\subset/g,'⊂').replace(/\\supset/g,'⊃').replace(/\\cup/g,'∪')
-    .replace(/\\cap/g,'∩').replace(/\\rightarrow/g,'→').replace(/\\leftarrow/g,'←')
-    .replace(/\\Rightarrow/g,'⇒').replace(/\\Leftrightarrow/g,'⟺')
-    .replace(/\\therefore/g,'∴').replace(/\\because/g,'∵')
-    // Powers shortcuts
+    .replace(/\\pm/g,'±').replace(/\\leq/g,'≤').replace(/\\geq/g,'≥')
+    .replace(/\\neq/g,'≠').replace(/\\infty/g,'∞').replace(/\\int/g,'∫')
+    .replace(/\\sum/g,'Σ').replace(/\\rightarrow/g,'→').replace(/\\Rightarrow/g,'⇒')
     .replace(/\^2\b/g,'²').replace(/\^3\b/g,'³')
-    // Clean remaining backslashes
-    .replace(/\\([a-zA-Z]+)/g,'$1')
     .replace(/\{([^{}]*)\}/g,'$1');
 }
 
 function hasMath(text: string): boolean {
   return /\$\$[\s\S]+?\$\$|\$[^\$\n]{1,100}?\$/.test(text);
 }
-
 
 const MODE_COLORS: Record<string,string> = {think:'#a78bfa',deep:'#34d399',auto:'#60a5fa',flash:'#facc15'};
 const MODE_ICONS: Record<string,string>  = {think:'🧠',deep:'🔬',auto:'🤖',flash:'⚡'};
@@ -98,17 +72,15 @@ export default function MessageBubble({message:msg,onLike,onSpeak,onCopy,onPin,o
 
   const handleCopy = () => { navigator.clipboard.writeText(msg.content).catch(()=>{}); setCopied(true); setTimeout(()=>setCopied(false),1800); onCopy(); };
 
-
   const saveToMemory = () => {
     try {
-      // Save to localStorage directly
       const key = 'jarvis_manual_memories';
       const list = JSON.parse(localStorage.getItem(key) || '[]');
-      list.unshift({ id: 'manual_' + Date.now(), type: 'important', text: msg.content.slice(0, 200), confidence: 1.0, mentions: 1, lastSeen: Date.now(), tags: ['manual'], source: 'manual' });
-      localStorage.setItem(key, JSON.stringify(list.slice(0, 50)));
+      list.unshift({ id: 'manual_' + Date.now(), type: 'important', text: msg.content.slice(0,200), confidence: 1.0, mentions: 1, lastSeen: Date.now(), tags: ['manual'], source: 'manual' });
+      localStorage.setItem(key, JSON.stringify(list.slice(0,50)));
       const t = document.createElement('div');
       t.textContent = '🧠 Memory mein save!';
-      t.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#6366f1;color:#fff;padding:8px 18px;border-radius:99px;font-size:12px;font-weight:700;z-index:9999;pointer-events:none;';
+      t.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#6366f1;color:#fff;padding:8px 18px;border-radius:99px;font-size:12px;font-weight:700;z-index:9999;pointer-events:none';
       document.body.appendChild(t);
       setTimeout(() => t.remove(), 2000);
     } catch {}
@@ -118,19 +90,18 @@ export default function MessageBubble({message:msg,onLike,onSpeak,onCopy,onPin,o
     try {
       const notes = JSON.parse(localStorage.getItem('jarvis_saved_notes') || '[]');
       notes.unshift({ id: Date.now(), content: msg.content, ts: msg.ts, from: 'JARVIS' });
-      localStorage.setItem('jarvis_saved_notes', JSON.stringify(notes.slice(0, 100)));
-      // Quick toast via DOM
+      localStorage.setItem('jarvis_saved_notes', JSON.stringify(notes.slice(0,100)));
       const t = document.createElement('div');
       t.textContent = '📌 Saved to Notes!';
-      t.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#6366f1;color:#fff;padding:8px 18px;border-radius:99px;font-size:12px;font-weight:700;z-index:9999;pointer-events:none;';
+      t.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#6366f1;color:#fff;padding:8px 18px;border-radius:99px;font-size:12px;font-weight:700;z-index:9999;pointer-events:none';
       document.body.appendChild(t);
       setTimeout(() => t.remove(), 2000);
     } catch {}
   };
 
   const shareWhatsApp = () => {
-    const text = msg.role==='user' ? msg.content : `JARVIS:\n${msg.content}`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`,'_blank');
+    const text = msg.role==='user' ? msg.content : 'JARVIS:\n' + msg.content;
+    window.open('https://wa.me/?text=' + encodeURIComponent(text),'_blank');
   };
 
   const modeColor = MODE_COLORS[msg.mode||'flash']||'#60a5fa';
@@ -138,8 +109,8 @@ export default function MessageBubble({message:msg,onLike,onSpeak,onCopy,onPin,o
   const timeStr   = new Date(msg.ts).toLocaleTimeString('hi-IN',{hour:'2-digit',minute:'2-digit'});
 
   return (
-    <div className={`relative w-full ${isUser?'flex justify-end':''}`}
-      style={{transform:`translateX(${swipeX}px)`,transition:swipeX===0?'transform 0.15s':'none'}}
+    <div className={'relative w-full ' + (isUser ? 'flex justify-end' : '')}
+      style={{transform:'translateX(' + swipeX + 'px)',transition:swipeX===0?'transform 0.15s':'none'}}
       onTouchStart={onTS} onTouchMove={onTM} onTouchEnd={onTE}>
 
       {/* Reaction popup */}
@@ -167,9 +138,7 @@ export default function MessageBubble({message:msg,onLike,onSpeak,onCopy,onPin,o
                   style={{fontSize:9,padding:'1px 6px',borderRadius:8,background:'rgba(255,255,255,0.07)',border:'1px solid rgba(255,255,255,0.1)',color:copied?'#4ade80':'#9ca3af',cursor:'pointer'}}>
                   {copied?'✅':'📋'}
                 </button>
-                <button onClick={e=>{e.stopPropagation();saveToNotes();setShowActions(false);}}
-                style={{fontSize:11,padding:'2px 6px',borderRadius:6,background:'rgba(99,102,241,0.08)',border:'1px solid rgba(99,102,241,0.15)',cursor:'pointer',color:'#818cf8'}}>💾</button>
-              <button onClick={e=>{e.stopPropagation();shareWhatsApp();}}
+                <button onClick={e=>{e.stopPropagation();shareWhatsApp();}}
                   style={{fontSize:9,padding:'1px 6px',borderRadius:8,background:'rgba(37,211,102,0.1)',border:'1px solid rgba(37,211,102,0.3)',color:'#25d366',cursor:'pointer'}}>
                   WhatsApp
                 </button>
@@ -195,27 +164,26 @@ export default function MessageBubble({message:msg,onLike,onSpeak,onCopy,onPin,o
           {msg.content&&(
             <div style={{fontSize:13.5,lineHeight:1.55,color:'#e2e8f0'}} className="jarvis-msg">
               {hasMath(msg.content) ? (
-                <div dangerouslySetInnerHTML={{__html: renderMath(msg.content.replace(/
-/g,'<br/>'))}}
-                  style={{fontSize:13.5,lineHeight:1.6,color:'#e2e8f0'}} />
+                <div dangerouslySetInnerHTML={{__html: mathToHtml(msg.content)}}
+                  style={{fontSize:13.5,lineHeight:1.6,color:'#e2e8f0'}}/>
               ) : (
-              <ReactMarkdown remarkPlugins={[remarkGfm]} components={{
-                p:({children})=><p style={{margin:'0 0 4px',fontSize:13.5,lineHeight:1.55,color:'#e2e8f0'}}>{children}</p>,
-                code({node,inline,className,children,...props}:any){
-                  if(inline) return <code style={{background:'rgba(255,255,255,0.08)',padding:'1px 5px',borderRadius:4,fontFamily:'monospace',fontSize:12}}>{children}</code>;
-                  return <pre style={{background:'#0d0f18',border:'1px solid rgba(255,255,255,0.07)',borderRadius:8,padding:'8px 10px',overflowX:'auto',margin:'4px 0'}}><code style={{fontFamily:'monospace',fontSize:11.5,color:'#a5f3fc'}}>{children}</code></pre>;
-                },
-                ul:({children})=><ul style={{paddingLeft:14,margin:'2px 0'}}>{children}</ul>,
-                ol:({children})=><ol style={{paddingLeft:14,margin:'2px 0'}}>{children}</ol>,
-                li:({children})=><li style={{fontSize:13,marginBottom:2,color:'#cbd5e1'}}>{children}</li>,
-                h1:({children})=><h1 style={{fontSize:15,fontWeight:800,color:'#fff',margin:'4px 0 2px'}}>{children}</h1>,
-                h2:({children})=><h2 style={{fontSize:14,fontWeight:700,color:'#f1f5f9',margin:'4px 0 2px'}}>{children}</h2>,
-                h3:({children})=><h3 style={{fontSize:13.5,fontWeight:700,color:'#e2e8f0',margin:'3px 0 1px'}}>{children}</h3>,
-                strong:({children})=><strong style={{color:'#fff',fontWeight:700}}>{children}</strong>,
-                blockquote:({children})=><blockquote style={{borderLeft:'2px solid rgba(99,102,241,0.5)',paddingLeft:8,margin:'4px 0',color:'#94a3b8',fontStyle:'italic'}}>{children}</blockquote>,
-                a:({href,children})=><a href={href} target="_blank" rel="noopener noreferrer" style={{color:'#60a5fa',textDecoration:'underline'}}>{children}</a>,
-                hr:()=><hr style={{border:'none',borderTop:'1px solid rgba(255,255,255,0.07)',margin:'6px 0'}}/>,
-              }}>{msg.content}</ReactMarkdown>
+                <ReactMarkdown remarkPlugins={[remarkGfm]} components={{
+                  p:({children})=><p style={{margin:'0 0 4px',fontSize:13.5,lineHeight:1.55,color:'#e2e8f0'}}>{children}</p>,
+                  code({node,inline,className,children,...props}:any){
+                    if(inline) return <code style={{background:'rgba(255,255,255,0.08)',padding:'1px 5px',borderRadius:4,fontFamily:'monospace',fontSize:12}}>{children}</code>;
+                    return <pre style={{background:'#0d0f18',border:'1px solid rgba(255,255,255,0.07)',borderRadius:8,padding:'8px 10px',overflowX:'auto',margin:'4px 0'}}><code style={{fontFamily:'monospace',fontSize:11.5,color:'#a5f3fc'}}>{children}</code></pre>;
+                  },
+                  ul:({children})=><ul style={{paddingLeft:14,margin:'2px 0'}}>{children}</ul>,
+                  ol:({children})=><ol style={{paddingLeft:14,margin:'2px 0'}}>{children}</ol>,
+                  li:({children})=><li style={{fontSize:13,marginBottom:2,color:'#cbd5e1'}}>{children}</li>,
+                  h1:({children})=><h1 style={{fontSize:15,fontWeight:800,color:'#fff',margin:'4px 0 2px'}}>{children}</h1>,
+                  h2:({children})=><h2 style={{fontSize:14,fontWeight:700,color:'#f1f5f9',margin:'4px 0 2px'}}>{children}</h2>,
+                  h3:({children})=><h3 style={{fontSize:13.5,fontWeight:700,color:'#e2e8f0',margin:'3px 0 1px'}}>{children}</h3>,
+                  strong:({children})=><strong style={{color:'#fff',fontWeight:700}}>{children}</strong>,
+                  blockquote:({children})=><blockquote style={{borderLeft:'2px solid rgba(99,102,241,0.5)',paddingLeft:8,margin:'4px 0',color:'#94a3b8',fontStyle:'italic'}}>{children}</blockquote>,
+                  a:({href,children})=><a href={href} target="_blank" rel="noopener noreferrer" style={{color:'#60a5fa',textDecoration:'underline'}}>{children}</a>,
+                  hr:()=><hr style={{border:'none',borderTop:'1px solid rgba(255,255,255,0.07)',margin:'6px 0'}}/>,
+                }}>{msg.content}</ReactMarkdown>
               )}
             </div>
           )}
@@ -237,7 +205,7 @@ export default function MessageBubble({message:msg,onLike,onSpeak,onCopy,onPin,o
             <span style={{fontSize:9,color:'rgba(148,163,184,0.3)'}}>{timeStr}</span>
             <div style={{display:'flex',gap:4,alignItems:'center'}}>
               <button onClick={e=>{e.stopPropagation();handleCopy();}}
-                style={{fontSize:11,padding:'2px 8px',borderRadius:6,background:copied?'rgba(74,222,128,0.12)':'rgba(255,255,255,0.05)',border:`1px solid ${copied?'rgba(74,222,128,0.3)':'rgba(255,255,255,0.08)'}`,cursor:'pointer',color:copied?'#4ade80':'#6b7280',transition:'all 0.2s'}}>
+                style={{fontSize:11,padding:'2px 8px',borderRadius:6,background:copied?'rgba(74,222,128,0.12)':'rgba(255,255,255,0.05)',border:'1px solid ' + (copied?'rgba(74,222,128,0.3)':'rgba(255,255,255,0.08)'),cursor:'pointer',color:copied?'#4ade80':'#6b7280',transition:'all 0.2s'}}>
                 {copied?'✅':'📋'}
               </button>
               {onRegenerate&&(
@@ -258,6 +226,7 @@ export default function MessageBubble({message:msg,onLike,onSpeak,onCopy,onPin,o
                 <>
                   <button onClick={e=>{e.stopPropagation();onSpeak();setShowActions(false);}} style={{fontSize:11,padding:'2px 6px',borderRadius:6,background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.08)',cursor:'pointer'}}>🔊</button>
                   <button onClick={e=>{e.stopPropagation();saveToMemory();setShowActions(false);}} style={{fontSize:11,padding:'2px 6px',borderRadius:6,background:'rgba(99,102,241,0.08)',border:'1px solid rgba(99,102,241,0.2)',cursor:'pointer',color:'#818cf8'}}>🧠</button>
+                  <button onClick={e=>{e.stopPropagation();saveToNotes();setShowActions(false);}} style={{fontSize:11,padding:'2px 6px',borderRadius:6,background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.08)',cursor:'pointer'}}>📌</button>
                   <button onClick={e=>{e.stopPropagation();onLike(true);setShowActions(false);}} style={{fontSize:11,padding:'2px 6px',borderRadius:6,background:msg.liked===true?'rgba(74,222,128,0.1)':'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.08)',cursor:'pointer'}}>{msg.liked===true?'💙':'👍'}</button>
                   <button onClick={e=>{e.stopPropagation();onPin();setShowActions(false);}} style={{fontSize:11,padding:'2px 6px',borderRadius:6,background:msg.pinned?'rgba(251,191,36,0.1)':'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.08)',cursor:'pointer'}}>{msg.pinned?'📌':'📍'}</button>
                 </>
