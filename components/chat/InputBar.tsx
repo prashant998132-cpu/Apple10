@@ -43,7 +43,7 @@ const ATTACH = [
 export default function InputBar({
   value, onChange, onSend, loading, onStop, onCompress,
   currentMode = 'auto', onModeChange, onVisionResult, onAppCommand, wakeWordEnabled = false,
-, forcedProvider, onForceProvider}: Props) {
+  forcedProvider, onForceProvider}: Props) {
   const [listening, setListening] = useState(false);
   const [wakeActive, setWakeActive] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
@@ -251,10 +251,21 @@ export default function InputBar({
           </div>
           <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '4px 8px' }} />
           <div style={{ padding: '6px 8px 10px' }}>
+            <p style={S.popLabel}>🎤 Voice Language</p>
+            <div style={{display:'flex',gap:5,marginBottom:8}}>
+              {([{lang:'hi-IN',label:'हिंदी',icon:'🇮🇳'},{lang:'en-IN',label:'English',icon:'🇬🇧'},{lang:'en-US',label:'US Eng',icon:'🇺🇸'}] as {lang:string;label:string;icon:string}[]).map(l=>(
+                <button key={l.lang} onClick={()=>{setShowPopup(false);startVoice(l.lang);}}
+                  style={{flex:1,padding:'8px 4px',borderRadius:10,border:'1px solid rgba(255,255,255,0.08)',background:'rgba(255,255,255,0.04)',color:'#9ca3af',fontSize:10,cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:3}}>
+                  <span style={{fontSize:18}}>{l.icon}</span>
+                  <span style={{fontWeight:700}}>{l.label}</span>
+                </button>
+              ))}
+            </div>
+            <div style={{height:1,background:'rgba(255,255,255,0.06)',margin:'4px 0 8px'}}/>
             <p style={S.popLabel}>Attach</p>
-            {ATTACH.map(a => (
+            {ATTACH.filter(a=>a.id!=='voice').map(a => (
               <button key={a.id}
-                onClick={() => { setShowPopup(false); if (a.id === 'voice') { startVoice(); return; } document.getElementById(`inp-${a.id}`)?.click(); }}
+                onClick={() => { setShowPopup(false); document.getElementById(`inp-${a.id}`)?.click(); }}
                 style={S.attachBtn}
                 onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}
                 onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
