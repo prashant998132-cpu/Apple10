@@ -19,13 +19,13 @@ function renderMath(text: string): string {
   // Block math: $$...$$
   out = out.replace(/\$\$([\s\S]+?)\$\$/g, (_: string, m: string) => {
     const clean = processLatex(m.trim());
-    return `<div class="math-block">${clean}</div>`;
+    return '<div class="math-block">' + clean + '</div>';
   });
 
   // Inline math: $...$ (not $$)
   out = out.replace(/(?<!\$)\$(?!\$)([^\$\n]{1,120}?)(?<!\$)\$(?!\$)/g, (_: string, m: string) => {
     const clean = processLatex(m.trim());
-    return `<span class="math-inline">${clean}</span>`;
+    return '<span class="math-inline">' + clean + '</span>';
   });
 
   return out;
@@ -101,9 +101,11 @@ export default function MessageBubble({message:msg,onLike,onSpeak,onCopy,onPin,o
 
   const saveToMemory = () => {
     try {
-      import('@/lib/crossSessionMemory').then(m => {
-        m.saveManualMemory(msg.content.slice(0, 200));
-      });
+      // Save to localStorage directly
+      const key = 'jarvis_manual_memories';
+      const list = JSON.parse(localStorage.getItem(key) || '[]');
+      list.unshift({ id: 'manual_' + Date.now(), type: 'important', text: msg.content.slice(0, 200), confidence: 1.0, mentions: 1, lastSeen: Date.now(), tags: ['manual'], source: 'manual' });
+      localStorage.setItem(key, JSON.stringify(list.slice(0, 50)));
       const t = document.createElement('div');
       t.textContent = '🧠 Memory mein save!';
       t.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#6366f1;color:#fff;padding:8px 18px;border-radius:99px;font-size:12px;font-weight:700;z-index:9999;pointer-events:none;';
