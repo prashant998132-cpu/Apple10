@@ -289,6 +289,29 @@ export default function ChatInterface() {
         }
       }
       extractAndStoreFacts(userText, full);
+
+      // AI-powered memory extraction (non-blocking, runs in background)
+      try {
+        const existingMems = getRelevantMemories(userText, 5);
+        fetch('/api/extract-memory', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userMsg: userText, aiResponse: full, existingMemories: existingMems }),
+        }).then(r => r.json()).then(({ facts }) => {
+          if (facts && facts.length > 0) {
+            const key = 'jarvis_cross_memory';
+            try {
+              const existing = JSON.parse(localStorage.getItem(key) || '[]');
+              const newFacts = facts.map((text: string) => ({
+                id: 'ai_' + Date.now() + '_' + Math.random().toString(36).slice(2,5),
+                type: 'fact', text, confidence: 0.85, mentions: 1,
+                lastSeen: Date.now(), tags: ['ai-extracted'], source: 'ai',
+              }));
+              localStorage.setItem(key, JSON.stringify([...newFacts, ...existing].slice(0, 300)));
+            } catch {}
+          }
+        }).catch(() => {});
+      } catch {}
       const xpRes = await addXP(10).catch(() => null);
       if (xpRes?.leveled) triggerAchievement(`Level ${xpRes.level} Unlocked! 🚀`, 50);
     } catch (e: any) {
