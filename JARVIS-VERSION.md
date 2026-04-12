@@ -1,27 +1,23 @@
-# JARVIS v47.0.0
+# JARVIS v49.0.0
 
 Released: April 2026
 
-## v47 — Bug Fixes + Features from Reference App
+## v49 — AI Memory + NEET Upgrade
 
-### 🐛 Critical Fixes
-- **FIX**: Chat screen black/blank — `position:fixed` + `100dvh` layout fix
-- **FIX**: Scroll nahi ho raha — `min-height:0` + `chat-scroll-area` CSS fix
-- **FIX**: `$H$` LaTeX raw text — Math renderer added (inline + block)
-- **FIX**: `#__next` height cascade fixed in globals.css
+### 🧠 AI-Powered Memory (Auto-save from conversations)
+- **NEW**: `/api/extract-memory` — LLM extracts personal facts from every conversation
+- Every message ke baad background mein AI run karta hai
+- Groq llama-3.1-8b (fast) → Gemini fallback
+- Auto-saves: naam, age, location, goals, hobbies, exam, preferences
+- No extra wait — non-blocking background call
 
-### ✨ New Features (from apple-v20.vercel.app)
-- **NEW**: LaTeX Math Rendering — `$inline$` → italic blue, `$$block$$` → centered card
-- **NEW**: Force Provider Lock 🔒 — Input bar mein provider pin karo (Groq/Gemini/Claude/Mistral)
-- **NEW**: Dynamic FollowUp Chips — Time-based (subah/dopahar/shaam/raat) + context-aware
-- **NEW**: Finance/Health/Cooking/NEET categories in follow-up chips
-- **UPGRADE**: Stream API now supports `forcedProvider` parameter
+### 🎓 NEET 2026 Page — Complete Rewrite
+- **Full chapter tracker**: Physics (12) + Chemistry (12) + Biology (12)
+- **Revision counter**: +Rev button for each chapter
+- **Study Timer**: 25min Pomodoro + 50min Deep Study mode
+- **Stats tab**: Per-subject progress bars + revision history
+- **Target tab**: Score predictor, gap analysis, daily chapters needed, strategy
 
-### 🎨 UI Improvements
-- Math blocks: centered, indigo border, serif font, fraction rendering
-- Provider badge in InputBar: 🔒 locked (amber) / 🤖 auto (indigo)
-- Follow-up chips: 4 chips shown, touch-friendly, time-aware on first message
-
----
-
-# Previous: JARVIS v46.0.0 (Finance + Todo + Calculator + AQI + Themes)
+### 🔧 Infrastructure
+- `vercel.json`: extract-memory route added (20s limit)
+- Version: 49.0.0
