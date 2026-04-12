@@ -343,7 +343,7 @@ export default function ChatInterface() {
           messageCount={messages.filter(m => m.id !== 'welcome').length}
         />
 
-        <div className="max-w-2xl mx-auto px-3 py-1 space-y-1.5 pb-4">
+        <div className="max-w-2xl mx-auto px-3 py-1 space-y-1.5 jarvis-chat-messages">
           {messages.length <= 1 && messages[0]?.id === 'welcome' && (
             <HomeScreen name={userName || 'Bhai'} onSend={(text) => sendMessage(text)} />
           )}
@@ -390,14 +390,14 @@ export default function ChatInterface() {
         </div>
       </div>
 
-      <div className="flex-shrink-0 px-4 pb-5 pt-1 bg-gradient-to-t from-[#0a0b0f] via-[#0a0b0f] to-transparent">
+      <div className="flex-shrink-0 px-4 pt-1 bg-gradient-to-t from-[#0a0b0f] via-[#0a0b0f] to-transparent" style={{paddingBottom:"env(safe-area-inset-bottom,0px)"}}>
         <div className="max-w-2xl mx-auto">
           {/* Follow-up chips */}
-          {!loading && messages.length > 0 && (
+          {!loading && (
             <FollowUpChips
-              lastMessage={messages[messages.length - 1] || messages[0]}
+              lastMessage={messages[messages.length - 1] || {id:'w',role:'assistant',content:'',ts:0}}
               onSelect={(text) => sendMessage(text)}
-              isFirst={messages.length <= 1}
+              isFirst={messages.length <= 1 || (messages.length === 1 && messages[0]?.id === 'welcome')}
             />
           )}
           <InputBar
